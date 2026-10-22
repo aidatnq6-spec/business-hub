@@ -8,6 +8,8 @@ Theo yêu cầu mới ngày 22/10/2026, toàn bộ ứng dụng Next.js đã chu
 
 ## Cập nhật tích hợp Firebase thật
 
+Cấu hình Firebase Web đã cập nhật theo 8 trường người dùng cung cấp ngày 22/10/2026 trong `.env.local` và `.secrets/firebase.env`, gồm appId/measurementId mới và databaseURL cho Realtime Database. Firebase client nhận databaseURL qua `NEXT_PUBLIC_FIREBASE_DATABASE_URL`; Firestore tiếp tục là kho dữ liệu nghiệp vụ đang dùng. Các cấu hình Telegram và danh tính máy chủ được giữ nguyên.
+
 Theo yêu cầu mới, dùng cấu hình Firebase Web đã cung cấp trong `.env.local` (ngoài Git), đăng nhập Email/Password với tài khoản chủ sở hữu và đọc/ghi đúng `users/{uid}/{collection}`. Không seed, không fallback mock, không sửa rules hoặc triển khai hosting. Fixture đã chuyển sang `tests/fixtures/`; kho localStorage mẫu cũ không được đọc hoặc tự nhập lên cloud. Các thao tác ghi thông báo thành công sau khi Firebase xác nhận; transaction phát hiện sửa đồng thời. Thu tiền thuê và việc định kỳ giữ ID tương thích bản HTML. Chi tiết thực hiện: `docs/plans/2026-10-22-firebase-live.md`. Các phần mô tả “chưa bật Firebase” bên dưới ghi lại trạng thái của giai đoạn mock trước yêu cầu này; cập nhật này là trạng thái hiện tại.
 
 ## Cập nhật báo cáo Telegram tự động
