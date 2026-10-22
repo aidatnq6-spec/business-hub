@@ -1,0 +1,13 @@
+# Local credentials and generated Firebase state
+/api key openrouter_*.txt
+/.firebase/
+/firebase-debug.log
+/firestore-debug.log
+/node_modules/
+/.secrets/
+**/node_modules/
+**/.next/
+**/coverage/
+**/tsconfig.tsbuildinfo
+**/.env*
+!**/.env.example

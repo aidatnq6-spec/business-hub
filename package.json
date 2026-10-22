@@ -1,0 +1,14 @@
+{
+  "name": "business-hub",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix nextjs-app run dev",
+    "build": "npm --prefix nextjs-app run build",
+    "start": "npm --prefix nextjs-app run start",
+    "lint": "npm --prefix nextjs-app run lint",
+    "typecheck": "npm --prefix nextjs-app run typecheck",
+    "test": "npm --prefix nextjs-app test",
+    "test:legacy": "node --test tests/business-hub.test.cjs"
+  }
+}
