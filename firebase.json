@@ -1,26 +1,5 @@
 {
   "firestore": {
     "rules": "firestore.rules"
-  },
-  "hosting": {
-    "public": "public",
-    "ignore": [
-      "firebase.json",
-      ".firebaserc",
-      "deploy.bat",
-      "deploy.sh",
-      "**/.*",
-      "**/*.zip",
-      "**/*.txt",
-      "**/*.docx"
-    ],
-    "headers": [
-      {
-        "source": "**",
-        "headers": [
-          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-        ]
-      }
-    ]
   }
 }

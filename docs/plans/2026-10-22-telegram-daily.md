@@ -8,7 +8,7 @@
 
 ## 1. Core gửi báo cáo
 
-- Tạo `nextjs-app/lib/telegram-job.ts` và `telegram-transport.ts`.
+- Tạo `lib/telegram-job.ts` và `telegram-transport.ts`.
 - Tính ngày Việt Nam, không gửi trước 07:00, không nhận UID/chat/token từ request.
 - Transaction giữ khóa theo ngày, lưu cố định các đoạn báo cáo và tiến độ, không gửi lại đoạn đã xác nhận. API từ chối chắc chắn có thể thử lại; timeout/mất kết nối hoặc tiến trình chết giữa gửi và ghi nhận được đánh dấu chưa rõ giao nhận và không tự gửi lại để tránh trùng.
 - Kiểm thử ngày/kỳ, rỗng/dài, 429, lỗi API, chạy trùng, lỗi mạng và resume.

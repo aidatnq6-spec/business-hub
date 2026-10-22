@@ -1,5 +1,7 @@
 # Kiểm chứng Firebase client — 22/10/2026
 
+> Biên bản lịch sử của giai đoạn trước. Ứng dụng hiện nằm tại thư mục gốc; mã và kiểm thử HTML đã được loại bỏ. Xem biên bản root-layout để biết trạng thái kiểm tra hiện tại.
+
 ## Đã thực hiện
 
 - Thay provider dữ liệu mẫu bằng Firebase Auth/Firestore client; giữ project và đường dẫn tài khoản của bản cũ. Cấu hình Firebase Web đã chuẩn bị trong `.env.local` ngoài Git.
@@ -13,7 +15,6 @@
 | Kiểm tra | Kết quả |
 |---|---|
 | Vitest/Testing Library, Firebase gateway giả và Firestore mock | 57/57 đạt |
-| Hồi quy HTML cũ | 22/22 đạt |
 | TypeScript | Đạt |
 | ESLint | Không lỗi/cảnh báo |
 | Production build | Đạt; đọc `.env.local` |

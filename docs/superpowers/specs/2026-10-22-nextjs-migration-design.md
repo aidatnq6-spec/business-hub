@@ -1,10 +1,18 @@
 # Thiết kế chuyển Business Hub sang Next.js
 
-Trạng thái: ngày 22/10/2026 người dùng yêu cầu chuyển từ dữ liệu giả sang dữ liệu Firebase đang có. Bản Next.js đã được kết nối Firebase Auth/Firestore client tại `nextjs-app/`, không nạp dữ liệu mẫu. Việc tải dữ liệu cloud thật cần người dùng đăng nhập bằng tài khoản hiện tại trong trình duyệt. AI, lịch gửi Telegram và triển khai production chưa kích hoạt.
+Trạng thái: ngày 22/10/2026 người dùng yêu cầu chuyển từ dữ liệu giả sang dữ liệu Firebase đang có. Bản Next.js đã được kết nối Firebase Auth/Firestore client tại thư mục gốc `D:\GitHub\business-hub`, không nạp dữ liệu mẫu. Việc tải dữ liệu cloud thật cần người dùng đăng nhập bằng tài khoản hiện tại trong trình duyệt. AI, lịch gửi Telegram và triển khai production chưa kích hoạt.
+
+## Cập nhật thư mục gốc
+
+Theo yêu cầu mới ngày 22/10/2026, toàn bộ ứng dụng Next.js đã chuyển lên D:\GitHub\business-hub. Các đường dẫn trong tài liệu dùng cấu trúc thư mục gốc. Mã HTML/PWA, công cụ deploy HTML và kiểm thử HTML đã được xóa. Firebase CLI chỉ giữ cấu hình Firestore; Vercel Root Directory chọn thư mục gốc (.).
 
 ## Cập nhật tích hợp Firebase thật
 
-Theo yêu cầu mới, dùng cấu hình Firebase Web đã cung cấp trong `nextjs-app/.env.local` (ngoài Git), đăng nhập Email/Password với tài khoản chủ sở hữu và đọc/ghi đúng `users/{uid}/{collection}`. Không seed, không fallback mock, không sửa rules hoặc triển khai hosting. Fixture đã chuyển sang `tests/fixtures/`; kho localStorage mẫu cũ không được đọc hoặc tự nhập lên cloud. Các thao tác ghi thông báo thành công sau khi Firebase xác nhận; transaction phát hiện sửa đồng thời. Thu tiền thuê và việc định kỳ giữ ID tương thích bản HTML. Chi tiết thực hiện: `docs/plans/2026-10-22-firebase-live.md`. Các phần mô tả “chưa bật Firebase” bên dưới ghi lại trạng thái của giai đoạn mock trước yêu cầu này; cập nhật này là trạng thái hiện tại.
+Theo yêu cầu mới, dùng cấu hình Firebase Web đã cung cấp trong `.env.local` (ngoài Git), đăng nhập Email/Password với tài khoản chủ sở hữu và đọc/ghi đúng `users/{uid}/{collection}`. Không seed, không fallback mock, không sửa rules hoặc triển khai hosting. Fixture đã chuyển sang `tests/fixtures/`; kho localStorage mẫu cũ không được đọc hoặc tự nhập lên cloud. Các thao tác ghi thông báo thành công sau khi Firebase xác nhận; transaction phát hiện sửa đồng thời. Thu tiền thuê và việc định kỳ giữ ID tương thích bản HTML. Chi tiết thực hiện: `docs/plans/2026-10-22-firebase-live.md`. Các phần mô tả “chưa bật Firebase” bên dưới ghi lại trạng thái của giai đoạn mock trước yêu cầu này; cập nhật này là trạng thái hiện tại.
+
+## Cập nhật báo cáo Telegram tự động
+
+Người dùng xác nhận sẽ chạy Next.js trên Vercel và giữ chat nhóm đã cung cấp. Đã có API máy chủ `/api/cron/telegram`, Firebase Admin adapter, journal theo ngày và `vercel.json` với lịch `0 0 * * *` UTC, tương ứng 07:00 Việt Nam. Bot/nhóm được xác minh chỉ đọc, bot đang là thành viên; chưa gửi tin thử. Chưa kích hoạt lịch production vì chưa có Firebase Admin credential và chưa có deployment Business Hub trên Vercel. Credential và token chỉ ở máy chủ. Chưa xác định được gói Vercel: Hobby chạy trong giờ 07:00–07:59; Pro hỗ trợ trong phút 07:00; không tự nâng gói. Hướng dẫn hoàn tất: `docs/telegram-setup.md`.
 
 ## Mục tiêu
 
@@ -24,7 +32,7 @@ Phạm vi bổ sung đã được người dùng yêu cầu: gửi báo cáo Bus
 
 ## Kiến trúc
 
-- Tạo ứng dụng riêng trong `nextjs-app/`. Bản HTML hiện tại tiếp tục nằm ở vị trí cũ để đối chiếu và quay lại nếu cần. Không nhúng bản HTML cũ trong iframe hoặc dùng `dangerouslySetInnerHTML` để giả lập chuyển đổi.
+- Ứng dụng Next.js chạy trực tiếp ở thư mục gốc. Mã HTML/PWA, bộ kiểm thử và công cụ triển khai HTML đã được xóa theo yêu cầu mới. Không dùng iframe hoặc `dangerouslySetInnerHTML` để giả lập chuyển đổi.
 - Dùng Next.js App Router, TypeScript strict và phiên bản package ổn định được kiểm tra khi cài. Commit lockfile trong phần bàn giao mã; không tự tạo Git commit khi chưa được yêu cầu.
 - Routes chính: `/`, `/sale`, `/accounting`, `/debts`, `/operations`, `/reports`, cùng `/login` và `/settings`.
 - Layout chung chứa điều hướng desktop/mobile. Component tương tác dùng client boundary rõ ràng; logic định dạng, tính toán và validation nằm trong thư viện độc lập.
@@ -36,7 +44,7 @@ Phạm vi bổ sung đã được người dùng yêu cầu: gửi báo cáo Bus
 
 Giữ nguyên project Firebase và đường dẫn `users/{uid}/{collection}/{id}`. Không thực hiện chuyển đổi/xóa dữ liệu thật chỉ để chạy bản Next.js. Cấu hình Firebase được khai báo qua biến môi trường công khai phù hợp; không đưa credential đặc quyền hoặc khóa OpenRouter vào các biến `NEXT_PUBLIC_*`.
 
-Ngày 22/10/2026, người dùng đã cung cấp đầy đủ cấu hình Firebase Web. Đã đối chiếu cả 7 trường với `public/index.html`: trùng hoàn toàn, cùng project `gen-lang-client-0931039939`. Cấu hình chuẩn bị cho Next.js được lưu tại `.secrets/firebase.env`, ngoài Git; đây mới là file chuẩn bị, chưa được ứng dụng Next.js nạp tự động. Chưa thực hiện kiểm tra kết nối hoặc thay đổi nào trên Firebase. Thông tin này là cấu hình client, không phải credential máy chủ cho Firebase Admin SDK; việc đọc dữ liệu để gửi báo cáo khi không có phiên đăng nhập cần danh tính máy chủ phù hợp khi triển khai.
+Ngày 22/10/2026, người dùng đã cung cấp đầy đủ cấu hình Firebase Web. Đã đối chiếu cả 7 trường với cấu hình ứng dụng trước khi chuyển đổi: trùng hoàn toàn, cùng project `gen-lang-client-0931039939`. Cấu hình chuẩn bị cho Next.js được lưu tại `.secrets/firebase.env`, ngoài Git; đây mới là file chuẩn bị, chưa được ứng dụng Next.js nạp tự động. Chưa thực hiện kiểm tra kết nối hoặc thay đổi nào trên Firebase. Thông tin này là cấu hình client, không phải credential máy chủ cho Firebase Admin SDK; việc đọc dữ liệu để gửi báo cáo khi không có phiên đăng nhập cần danh tính máy chủ phù hợp khi triển khai.
 
 Giữ date-only theo múi giờ Việt Nam, validation tiền, transaction tạo việc định kỳ có ID cố định và dấu chạy, collection `rentPayments`, di chuyển trạng thái tiền thuê local mà không đè trạng thái cloud, và backup đủ các collection. Các bước di chuyển dữ liệu local cần chạy trên cùng origin với bản cũ hoặc qua backup; ứng dụng ở localhost/domain mới không đọc được localStorage của domain cũ.
 
@@ -103,7 +111,7 @@ Cấu hình Firebase người dùng cung cấp trùng với cấu hình Business
 
 Cung cấp `.env.example`, hướng dẫn chạy local và lệnh dev/build/start/test. Kiểm tra các chức năng bằng dữ liệu giả hoặc Firebase Emulator, không viết fixture vào project production.
 
-Ứng dụng có API phía máy chủ nên bản đề xuất không dùng static export. Hosting hiện tại dành cho HTML tĩnh không được thay đổi tự động. Có thể triển khai sau lên nơi chạy Next.js server như Firebase App Hosting hoặc Vercel; việc chọn/chuyển hosting và xuất bản không thuộc phạm vi triển khai local ban đầu.
+Ứng dụng có API phía máy chủ nên bản đề xuất không dùng static export. Repository không còn cấu hình triển khai Firebase Hosting HTML; tài nguyên hosting đã triển khai trên cloud không bị thay đổi bởi việc dọn mã cục bộ. Có thể triển khai sau lên nơi chạy Next.js server như Firebase App Hosting hoặc Vercel; việc chọn/chuyển hosting và xuất bản không thuộc phạm vi triển khai local ban đầu.
 
 Service worker mới không cache API, token hay response nhạy cảm. Tránh dùng worker cũ để cache HTML ứng dụng Next.js hoặc làm hỏng chunk. Chỉ quảng bá mức hỗ trợ offline đã kiểm thử. Nhắc việc trong giao diện chưa trở thành tác vụ nền khi ứng dụng đóng; báo cáo Telegram 07:00 hằng ngày chạy riêng phía máy chủ.
 
@@ -114,7 +122,7 @@ Service worker mới không cache API, token hay response nhạy cảm. Tránh d
 3. Đăng nhập/đăng xuất, listener, API AI và lỗi mạng xử lý đúng, không lộ khóa máy chủ.
 4. Các ca hồi quy hiện có được chuyển hoặc bổ sung tương đương; typecheck, lint, tests và production build đều đạt.
 5. Kiểm tra giao diện desktop/mobile và luồng chính bằng trình duyệt nếu môi trường có trình duyệt. Nếu không, ghi rõ phần chưa xác minh, không coi đó là kiểm thử E2E đã đạt.
-6. Có README, `.env.example`, bảng tương đương chức năng và ghi chú khác biệt. Bản cũ và các snapshot lịch sử không bị ghi đè.
+6. Có README, `.env.example`, bảng tương đương chức năng và ghi chú khác biệt. Mã nguồn Next.js và cấu hình nằm tại gốc; mã HTML/PWA và các snapshot cũ đã được loại bỏ theo yêu cầu người dùng.
 7. Báo cáo Telegram khớp dữ liệu ở các mốc đầu/cuối tháng và khoảng 7 ngày; không gửi việc đã xong hoặc công nợ đã thu đủ. Kiểm thử Telegram bằng mock, gồm báo cáo rỗng, báo cáo dài, API lỗi, chạy lịch trùng và quy đổi lịch 07:00 giờ Việt Nam. Không thay đổi cơ chế gửi form của phần mềm kia.
 
 ## Quyết định còn chờ
@@ -122,4 +130,4 @@ Service worker mới không cache API, token hay response nhạy cảm. Tránh d
 - Phạm vi giữ giao diện/chức năng và xây dựng bản dữ liệu giả đã được người dùng xác nhận; đã thực hiện. Phần tích hợp Firebase/AI/Telegram thật và triển khai production vẫn cần cấu hình, xác minh và quyết định hosting tương ứng.
 - Token bot và chat đích đã được cung cấp trong cấu hình riêng; lịch gửi 07:00 hằng ngày theo giờ Việt Nam đã được chốt. Cần kiểm tra quyền gửi thực tế khi triển khai tích hợp, chưa gửi thử hoặc kích hoạt lịch.
 
-Kế hoạch giai đoạn mock: `docs/plans/2026-10-22-nextjs-mock-implementation.md`. Kết quả: `docs/verification/2026-10-22-nextjs-mock.md`; hướng dẫn chạy và phạm vi chức năng: `nextjs-app/README.md`.
+Kế hoạch giai đoạn mock: `docs/plans/2026-10-22-nextjs-mock-implementation.md`. Kết quả: `docs/verification/2026-10-22-nextjs-mock.md`; hướng dẫn chạy và phạm vi chức năng: `README.md`.

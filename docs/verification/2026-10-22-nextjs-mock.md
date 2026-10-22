@@ -1,5 +1,7 @@
 # Kết quả kiểm tra Business Hub Next.js — dữ liệu mẫu
 
+> Biên bản lịch sử của giai đoạn trước. Ứng dụng hiện nằm tại thư mục gốc; mã và kiểm thử HTML đã được loại bỏ. Xem biên bản root-layout để biết trạng thái kiểm tra hiện tại.
+
 Ngày 22/10/2026. Phạm vi được cho phép: giao diện, nghiệp vụ và kiểm thử bằng dữ liệu giả; không tích hợp dịch vụ thật.
 
 ## Luồng được kiểm tra
@@ -19,8 +21,6 @@ Người dùng mở một trang Next.js → component React đọc dữ liệu m
 | HTTP `/route-not-found` | 404 |
 | Header `X-Powered-By` | Không có |
 | Quét 121 file nguồn/static bundle với giá trị cấu hình Firebase/Telegram đã cung cấp | Không có giá trị cấu hình nào được sao chép vào bản demo |
-| `node --test tests/business-hub.test.cjs` của bản HTML | 22/22 ca đạt |
-| `index.html` gốc so với `public/index.html` gốc | Vẫn trùng nhau; không bị thay bởi bản Next.js |
 | `npm.cmd audit --omit=dev` | 0 advisory với dependency production |
 
 Kiểm thử tương tác dùng các component thực tế với jsdom. Bao gồm validation trước lưu, thu/chi theo schema cũ và mới, các mốc tháng/ngày Việt Nam, todo hoàn thành theo `done/status`, công nợ hôm nay đến sáu ngày tiếp, định kỳ tuần/tháng/năm và chạy trùng, thu tiền thuê theo tháng, undo chống đè sửa mới, merge backup giữ timestamp, tên chứa HTML được render như văn bản, bàn phím tìm kiếm/modal, đăng nhập/đăng xuất mô phỏng và không gọi fetch từ AI/Telegram.
@@ -32,4 +32,4 @@ Kiểm thử tương tác dùng các component thực tế với jsdom. Bao gồ
 - Full `npm audit` còn 5 advisory mức high trong chuỗi công cụ lint `eslint-config-next` → `fast-glob` → `micromatch` → `braces`. Phiên bản `braces` được registry trả về là 3.0.3, cũng thuộc advisory `GHSA-vfj7-8cjw-p6xm`; bản được npm đề xuất là hạ major `eslint-config-next`. Không chạy `audit fix --force` để tránh phá cấu hình Next.js. Các dependency này chỉ dùng cho phát triển; audit production riêng đạt 0. Cần rà lại khi có bản vá và trước khi xử lý pattern/file không tin cậy trong CI.
 - Dữ liệu mẫu lưu trên trình duyệt theo key riêng, không đồng bộ giữa các thiết bị. Undo giữ một thao tác trong phiên, không phải hệ thống lịch sử đa người dùng.
 
-Môi trường kiểm tra: Windows, Node 25.9.0, npm 11.12.1. Thư viện được khóa trong `nextjs-app/package-lock.json`.
+Môi trường kiểm tra: Windows, Node 25.9.0, npm 11.12.1. Thư viện được khóa trong `package-lock.json`.
