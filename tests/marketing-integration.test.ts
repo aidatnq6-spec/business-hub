@@ -56,6 +56,29 @@ beforeEach(() => {
   });
 });
 describe('server Marketing workflow without paid services', () => {
+  it('can load and save a persisted brand repeatedly without sending storage metadata', async () => {
+    const { docs } = setup();
+    const original = { ...initialBrand(), approved: true, revision: 3 };
+    docs.set('users/owner/marketingBrand/profile', { ...original, updatedAt: '2026-10-22' });
+    const loaded = await (await handleMarketing(new Request('https://app.test'), ['brand'])).json();
+    expect(loaded).toEqual(original);
+    const save = (body: unknown) =>
+      handleMarketing(
+        new Request('https://app.test', {
+          method: 'PATCH',
+          body: JSON.stringify(body),
+        }),
+        ['brand'],
+      );
+    const first = await save(loaded);
+    expect(first.status).toBe(200);
+    const saved = await first.json();
+    expect(saved.brand.revision).toBe(4);
+    expect((await save(saved.brand)).status).toBe(200);
+    expect(docs.get('users/owner/marketingBrand/profile')?.revision).toBe(5);
+    expect((await save(loaded)).status).toBe(409);
+    expect((await save({ ...saved.brand, id: 'profile' })).status).toBe(422);
+  });
   it('moves an unspent reservation into the actual charge month without bypassing its limit', async () => {
     const { c, docs } = setup(),
       job = {

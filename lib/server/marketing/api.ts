@@ -165,7 +165,7 @@ export async function handleMarketing(request: Request, path: string[]) {
         list(c, 'marketingJobs', 20),
       ]);
       return response({
-        brand: brand ?? initialBrand(),
+        brand: brandSchema.strip().parse(brand ?? initialBrand()),
         plans,
         bundles,
         budget: budget ?? { spent: 0, reserved: 0, limit: MONTHLY_LIMIT },
@@ -175,7 +175,9 @@ export async function handleMarketing(request: Request, path: string[]) {
     }
     if (part === 'brand') {
       if (method === 'GET')
-        return response((await read(c, 'marketingBrand', 'profile')) ?? initialBrand());
+        return response(
+          brandSchema.strip().parse((await read(c, 'marketingBrand', 'profile')) ?? initialBrand()),
+        );
       if (method === 'PATCH') {
         const value = brandSchema.parse(await requestBody(request)),
           ref = collection(c, 'marketingBrand').doc('profile');
@@ -190,7 +192,7 @@ export async function handleMarketing(request: Request, path: string[]) {
             updatedAt: new Date().toISOString(),
           });
         });
-        return response({ ok: true });
+        return response({ ok: true, brand: { ...value, revision: value.revision + 1 } });
       }
     }
     if (part === 'plans' && !id && method === 'POST') {

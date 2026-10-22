@@ -112,13 +112,13 @@ export function MarketingStudio() {
       c.abort();
     };
   }, [processing, reload]);
-  const act = async (fn: () => Promise<void>, message: string) => {
+  const act = async (fn: () => Promise<void>, message: string, refresh = true) => {
     setBusy(true);
     setNotice('');
     try {
       await fn();
       setNotice(message);
-      await reload();
+      if (refresh) await reload();
     } catch (e) {
       setNotice(e instanceof Error ? e.message : 'Chưa hoàn tất thao tác.');
     } finally {
@@ -864,10 +864,21 @@ export function MarketingStudio() {
                 className={s.panelBody}
                 onSubmit={(e) => {
                   e.preventDefault();
-                  void act(async () => {
-                    await marketingRequest('brand', 'PATCH', brand);
-                    setBrand({ ...brand, revision: brand.revision + 1 });
-                  }, 'Đã lưu hồ sơ thương hiệu.');
+                  void act(
+                    async () => {
+                      const saved = await marketingRequest<{ brand: Brand }>(
+                        'brand',
+                        'PATCH',
+                        brand,
+                      );
+                      setBrand(saved.brand);
+                      setData((current) =>
+                        current ? { ...current, brand: saved.brand } : current,
+                      );
+                    },
+                    'Đã lưu hồ sơ thương hiệu.',
+                    false,
+                  );
                 }}
               >
                 <label>

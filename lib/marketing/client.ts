@@ -30,24 +30,65 @@ export async function marketingRequest<T>(
 ): Promise<T> {
   const user = firebaseClient().auth.currentUser;
   if (!user) throw new Error(errors.marketing_unauthorized);
-  const token = await user.getIdToken();
-  const result = await fetch(`/api/marketing/${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(body ? { 'Content-Type': 'application/json' } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-    signal,
-    cache: 'no-store',
+  const controller = new AbortController();
+  const cancel = () => controller.abort(signal?.reason);
+  const timeout = setTimeout(() => controller.abort(new Error('marketing_request_timeout')), 30000);
+  signal?.addEventListener('abort', cancel, { once: true });
+  if (signal?.aborted) cancel();
+  let onAbort: () => void = () => {};
+  const aborted = new Promise<never>((_, reject) => {
+    onAbort = () => reject(controller.signal.reason);
+    controller.signal.addEventListener('abort', onAbort, { once: true });
+    if (controller.signal.aborted) onAbort();
   });
-  const value = await result.json();
-  if (!result.ok)
-    throw Object.assign(
-      new Error(
-        errors[value.error] ?? 'Chưa hoàn tất thao tác. Kiểm tra trạng thái cấu hình và thử lại.',
-      ),
-      { code: typeof value.error === 'string' ? value.error : 'marketing_server_unavailable' },
-    );
-  return value;
+  try {
+    return await Promise.race([
+      aborted,
+      (async () => {
+        const token = await user.getIdToken();
+        controller.signal.throwIfAborted();
+        const result = await fetch(`/api/marketing/${path}`, {
+          method,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(body ? { 'Content-Type': 'application/json' } : {}),
+          },
+          body: body ? JSON.stringify(body) : undefined,
+          signal: controller.signal,
+          cache: 'no-store',
+        });
+        const value = await result.json();
+        if (!result.ok)
+          throw Object.assign(
+            new Error(
+              errors[value.error] ??
+                'Chưa hoàn tất thao tác. Kiểm tra trạng thái cấu hình và thử lại.',
+            ),
+            {
+              code: typeof value.error === 'string' ? value.error : 'marketing_server_unavailable',
+            },
+          );
+        return value;
+      })(),
+    ]);
+  } catch (error) {
+    if (
+      controller.signal.aborted &&
+      controller.signal.reason?.message === 'marketing_request_timeout'
+    ) {
+      throw Object.assign(
+        new Error(
+          method === 'GET'
+            ? 'Máy chủ phản hồi quá lâu. Hãy thử tải lại.'
+            : 'Chưa xác nhận được kết quả lưu do kết nối chậm. Hãy tải lại để kiểm tra trước khi lưu tiếp.',
+        ),
+        { code: 'marketing_request_timeout' },
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener('abort', cancel);
+    controller.signal.removeEventListener('abort', onAbort);
+  }
 }

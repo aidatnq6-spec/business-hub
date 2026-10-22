@@ -22,6 +22,28 @@ beforeEach(() => {
   });
 });
 describe('marketing workspace', () => {
+  it('unlocks the save button and uses the confirmed revision for a second save without reloading the dashboard', async () => {
+    const dashboard = await request();
+    let revision = 0;
+    request.mockImplementation(async (path, method, body) => {
+      if (path === 'brand' && method === 'PATCH') {
+        expect(body.revision).toBe(revision);
+        return { ok: true, brand: { ...body, revision: ++revision } };
+      }
+      if (revision > 0) return new Promise(() => {});
+      return dashboard;
+    });
+    render(<MarketingStudio />);
+    await screen.findByText(/Chưa có bộ nội dung cho dịch vụ này/);
+    fireEvent.click(screen.getByRole('button', { name: 'Hồ sơ thương hiệu' }));
+    const save = screen.getByRole('button', { name: 'Lưu hồ sơ thương hiệu' });
+    fireEvent.click(save);
+    await screen.findByText('Đã lưu hồ sơ thương hiệu.');
+    expect(save).toBeEnabled();
+    fireEvent.click(save);
+    await waitFor(() => expect(revision).toBe(2));
+    await waitFor(() => expect(save).toBeEnabled());
+  });
   it('explains missing Firebase Admin without substituting demo data', async () => {
     request.mockRejectedValue(
       Object.assign(new Error('Máy chủ chưa được cấu hình Firebase Admin.'), {

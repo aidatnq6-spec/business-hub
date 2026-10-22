@@ -198,8 +198,6 @@ export function HubShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
           <div className="side-footer">
-            <p>Bản dùng thử Next.js</p>
-            <small>Dữ liệu lưu trên trình duyệt này.</small>
             <button onClick={() => setDialog('telegram')}>📨 Xem báo cáo 07:00</button>
             <Link href="/settings">Cài đặt</Link>
           </div>
