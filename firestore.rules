@@ -7,8 +7,12 @@ service cloud.firestore {
         && request.auth.token.email == "aidatnq6@gmail.com";
     }
 
-    match /users/{userId}/{document=**} {
-      allow read, write: if isOwner() && request.auth.uid == userId;
+    match /users/{userId}/{collection}/{document=**} {
+      allow read: if isOwner() && request.auth.uid == userId;
+      // Marketing approvals, budgets and jobs are server-authoritative.
+      // A recursive owner write rule would override any narrower deny rule.
+      allow write: if isOwner() && request.auth.uid == userId
+        && !collection.matches('marketing.*');
     }
 
     match /{document=**} {

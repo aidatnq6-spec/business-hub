@@ -1,0 +1,12 @@
+project_id = "YOUR_CONFIRMED_PROJECT"
+region = "asia-southeast1"
+bucket_name = "YOUR_UNIQUE_PRIVATE_MARKETING_BUCKET"
+worker_image = "YOUR_PINNED_IMAGE_DIGEST"
+worker_url = ""
+app_origin = "https://YOUR_PRODUCTION_DOMAIN"
+vercel_service_account = "YOUR_EXISTING_SERVER_IDENTITY"
+gemini_secret_name = "YOUR_EXISTING_GEMINI_SECRET"
+tts_voice = ""
+prices_valid_until = ""
+enable_generation = false
+enable_scheduler = false

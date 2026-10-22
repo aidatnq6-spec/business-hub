@@ -11,3 +11,9 @@
 **/tsconfig.tsbuildinfo
 **/.env*
 !**/.env.example
+/.superpowers/
+/dist/
+/.terraform/
+**/.terraform/
+**/terraform.tfstate*
+**/*.tfvars

@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.env*
+.secrets
+.firebase
+.superpowers
+infra
+tests
+docs
+*.log

@@ -9,6 +9,7 @@ import { BackupDialog } from './backup-dialog';
 import { Modal, Empty, Button } from './ui';
 import { TelegramPreview } from './telegram-preview';
 const nav = [
+  ['/marketing', '✧', 'Marketing Studio'],
   ['/', '🏠', 'Tổng quan'],
   ['/sale', '💼', 'Sale Pipeline'],
   ['/accounting', '💰', 'Kế toán'],
