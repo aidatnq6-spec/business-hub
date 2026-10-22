@@ -238,19 +238,17 @@ describe('mock integrations and safety boundaries', () => {
     await user.click(screen.getByRole('button', { name: 'Xác nhận gộp lên Firebase' }));
     expect(gateway.data.deals[0].ten).toBe('Khách nhập backup');
   });
-  it('keeps the key input out of persistent mock data and never sends it', async () => {
-    const user = userEvent.setup();
+  it('replaces legacy demo AI settings without writing secrets into legacy hub data', async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValue(Response.json({ configured: false, sendsEnabled: false, missing: [] }));
     vi.stubGlobal('fetch', fetch);
     await mount(<Settings />);
-    await user.type(screen.getByLabelText('OpenRouter API key (nhập thử)'), 'test-only-key');
-    await user.click(screen.getByRole('button', { name: 'Lưu cài đặt AI' }));
+    expect(screen.queryByLabelText('OpenRouter API key (nhập thử)')).not.toBeInTheDocument();
     expect(JSON.stringify(gateway.data)).not.toContain('test-only-key');
     expect(fetch.mock.calls.every(([url]) => url === '/api/telegram/status')).toBe(true);
     expect(JSON.stringify(fetch.mock.calls)).not.toContain('test-only-key');
-    expect(screen.getByLabelText('OpenRouter API key (nhập thử)')).toHaveValue('');
+    expect(screen.queryByRole('button', { name: 'Lưu cài đặt AI' })).not.toBeInTheDocument();
     vi.unstubAllGlobals();
   });
   it('renders reports and navigates report months without live services', async () => {

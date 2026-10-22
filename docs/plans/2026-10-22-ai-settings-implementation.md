@@ -10,6 +10,8 @@
 
 ---
 
+**Trạng thái thực hiện 22/10/2026:** đã triển khai code các nhóm công việc trong phiên hiện tại và kiểm chứng cục bộ. Chi tiết bằng chứng/giới hạn ở `docs/verification/2026-10-22-ai-settings.md`. Metadata check có implementation/test nhưng mặc định bị chặn bởi cờ xác minh điều kiện tính phí; generation/lịch vẫn tắt. Chưa triển khai cloud hoặc gửi provider request thật.
+
 ## Hợp đồng bàn giao
 
 Thiết kế nguồn đã được duyệt: `docs/superpowers/specs/2026-10-22-ai-settings-design.md`. Phạm vi nhà cung cấp: Gemini trước; không tự thêm OpenRouter. Tham chiếu giao diện: `.superpowers/brainstorm/2375-1792675345/content/ai-settings-preview-v2.html` nếu còn tồn tại. Khi không có file này, lấy bố cục trong tài liệu thiết kế và theme `app/globals.css`; không tự tạo lại cơ chế mô phỏng.

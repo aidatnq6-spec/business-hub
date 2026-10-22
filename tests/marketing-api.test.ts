@@ -14,11 +14,12 @@ vi.mock('google-auth-library', () => ({
 import { requireOwner, scheduleAuth } from '@/lib/server/marketing/auth';
 import { handleMarketing, errorResponse } from '@/lib/server/marketing/api';
 import { marketingConfig } from '@/lib/server/marketing/config';
+import { fakeFirestore } from './marketing-fake-store';
 beforeEach(() => {
   vi.unstubAllEnvs();
   vi.clearAllMocks();
   state.verify.mockResolvedValue({ uid: 'owner', email: 'aidatnq6@gmail.com' });
-  state.owner.mockResolvedValue({ uid: 'owner', db: state.db });
+  state.owner.mockResolvedValue({ uid: 'owner', db: fakeFirestore().db });
 });
 describe('marketing server authorization', () => {
   it.each([

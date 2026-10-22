@@ -24,7 +24,8 @@ import { caps } from '../../marketing/pricing';
 import { scriptScenes } from '../../marketing/media';
 import { requireOwner } from './auth';
 import { collection, read, list, putJob, revise, type Context } from './store';
-import { marketingConfig, requireGeneration } from './config';
+import { marketingReadiness, requireGeneration } from './config';
+import { readBudget } from '../ai-settings/budget';
 import { flushOutbox } from './tasks';
 import { assetUrl, bucket } from './assets';
 
@@ -84,7 +85,7 @@ async function enqueue(
   b: Bundle,
   stage: 'draft' | 'image' | 'speech' | 'render' | 'export',
 ) {
-  requireGeneration();
+  await requireGeneration(c, stage);
   const ref = collection(c, 'marketingBundles').doc(b.id);
   await c.db.runTransaction(async (tx) => {
     const snap = await tx.get(ref),
@@ -146,7 +147,7 @@ export async function handleMarketing(request: Request, path: string[]) {
       method = request.method;
     const [part, id, action] = path;
     if (id) idSchema.parse(id);
-    if (part === 'status' && method === 'GET') return response(marketingConfig());
+    if (part === 'status' && method === 'GET') return response(await marketingReadiness(c));
     if (part === 'dashboard' && method === 'GET') {
       const month = monthSchema.parse(
         new URL(request.url).searchParams.get('month') ?? businessDay().slice(0, 7),
@@ -161,7 +162,7 @@ export async function handleMarketing(request: Request, path: string[]) {
           .limit(90)
           .get()
           .then((s) => s.docs.map((d) => ({ ...d.data(), id: d.id }) as Bundle)),
-        read(c, 'marketingBudget', businessDay().slice(0, 7)),
+        readBudget(c),
         list(c, 'marketingJobs', 20),
       ]);
       return response({
@@ -170,7 +171,7 @@ export async function handleMarketing(request: Request, path: string[]) {
         bundles,
         budget: budget ?? { spent: 0, reserved: 0, limit: MONTHLY_LIMIT },
         jobs,
-        status: marketingConfig(),
+        status: await marketingReadiness(c),
       });
     }
     if (part === 'brand') {
@@ -295,7 +296,7 @@ export async function handleMarketing(request: Request, path: string[]) {
         return response({ ok: true });
       }
       if (method === 'POST' && action === 'generate') {
-        requireGeneration();
+        await requireGeneration(c, 'plan');
         const v = z.object({ revision }).strict().parse(body),
           ref = collection(c, 'marketingPlans').doc(id);
         await c.db.runTransaction(async (tx) => {
@@ -390,7 +391,7 @@ export async function handleMarketing(request: Request, path: string[]) {
         return response({ ok: true });
       }
       if (method === 'POST' && action === 'approve-script') {
-        requireGeneration();
+        await requireGeneration(c, 'speech');
         const v = z.object({ revision }).strict().parse(body),
           ref = collection(c, 'marketingBundles').doc(id);
         await c.db.runTransaction(async (tx) => {
@@ -471,7 +472,7 @@ export async function handleMarketing(request: Request, path: string[]) {
         return response({ queued: true }, 202);
       }
       if (method === 'POST' && action === 'rebase') {
-        requireGeneration();
+        await requireGeneration(c, 'draft');
         const v = z.object({ revision }).strict().parse(body),
           ref = collection(c, 'marketingBundles').doc(id);
         await c.db.runTransaction(async (tx) => {
@@ -503,7 +504,6 @@ export async function handleMarketing(request: Request, path: string[]) {
         return response({ queued: true }, 202);
       }
       if (method === 'POST' && action === 'retry') {
-        requireGeneration();
         const v = z.object({ revision }).strict().parse(body);
         const jobs = await collection(c, 'marketingJobs')
           .where('bundleId', '==', id)
@@ -515,22 +515,26 @@ export async function handleMarketing(request: Request, path: string[]) {
             ['failed', 'blocked_budget', 'waiting_material'].includes(x.data().state),
         );
         if (!job) throw new Error('marketing_job_conflict');
+        await requireGeneration(c, job.data().stage);
         await c.db.runTransaction(async (tx) => {
-          const [j, b] = await Promise.all([
+          const [j, b, cost] = await Promise.all([
             tx.get(job.ref),
             tx.get(collection(c, 'marketingBundles').doc(id)),
+            tx.get(collection(c, 'marketingCosts').doc(job.id)),
           ]);
           const value = j.data() as import('../../marketing/types').Job;
           if (
             b.data()?.revision !== v.revision ||
             !['failed', 'blocked_budget', 'waiting_material'].includes(value.state) ||
             value.attempts >= 3 ||
-            (value.sideEffect && caps[value.stage] > 0)
+            (value.sideEffect && caps[value.stage] > 0) ||
+            (cost.exists && !['released', 'reserved'].includes(cost.data()?.state))
           )
             throw new Error('marketing_job_conflict');
           tx.update(job.ref, {
             state: 'queued',
             sideEffect: false,
+            execution: null,
             error: '',
             updatedAt: new Date().toISOString(),
           });
@@ -621,7 +625,7 @@ export async function handleMarketing(request: Request, path: string[]) {
     }
     // Upload finalization is deliberately not trusted from client metadata: the worker probes it before use.
     if (part === 'assets' && id && action === 'finalize' && method === 'POST') {
-      requireGeneration();
+      await requireGeneration(c, 'probe');
       const ref = collection(c, 'marketingAssets').doc(id);
       await c.db.runTransaction(async (tx) => {
         const snap = await tx.get(ref);
@@ -639,7 +643,7 @@ export async function handleMarketing(request: Request, path: string[]) {
       return response(a);
     }
     if (part === 'outbox' && method === 'POST') {
-      requireGeneration();
+      await requireGeneration(c, 'export');
       return response(await flushOutbox(c));
     }
     if (part === 'prepare-today' && method === 'POST') {

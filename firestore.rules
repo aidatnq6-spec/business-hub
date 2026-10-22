@@ -15,6 +15,10 @@ service cloud.firestore {
         && !collection.matches('marketing.*');
     }
 
+    match /privateAiCredentials/{document=**} { allow read, write: if false; }
+    match /privateAiAudit/{document=**} { allow read, write: if false; }
+    match /privateAiRateLimits/{document=**} { allow read, write: if false; }
+
     match /{document=**} {
       allow read, write: if false;
     }

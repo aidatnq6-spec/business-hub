@@ -13,6 +13,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "ai-settings:prepare": "node scripts/prepare-ai-settings.mjs",
     "marketing:worker:build": "node scripts/build-marketing-worker.mjs",
     "marketing:worker:check": "node scripts/check-marketing-worker.mjs",
     "marketing:render:check": "node scripts/check-marketing-render.mjs",

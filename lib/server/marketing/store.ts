@@ -73,31 +73,51 @@ export function putJob(
   });
   return job;
 }
-export async function reserve(c: Context, job: Job) {
+export async function reserve(c: Context, job: Job, priceVersion = PRICE_VERSION) {
   const month = businessDay().slice(0, 7),
     budgetRef = collection(c, 'marketingBudget').doc(month),
     costRef = collection(c, 'marketingCosts').doc(job.id);
   return c.db.runTransaction(async (tx) => {
-    const [b, r] = await Promise.all([tx.get(budgetRef), tx.get(costRef)]);
-    const v = (b.data() ?? { spent: 0, reserved: 0, limit: MONTHLY_LIMIT }) as Budget;
+    const [b, r, settings] = await Promise.all([
+      tx.get(budgetRef),
+      tx.get(costRef),
+      tx.get(collection(c, 'marketingSettings').doc('ai')),
+    ]);
+    const v = (b.data() ?? {
+      spent: 0,
+      reserved: 0,
+      limit: settings.data()?.monthlyLimit ?? MONTHLY_LIMIT,
+    }) as Budget;
     const maximum = caps[job.stage];
     if (r.exists) {
       const cost = r.data()!;
       if (maximum === 0) return;
+      if (cost.state === 'released' && cost.actual === 0) {
+        const reserved = reserveAmount(v, maximum, v.limit);
+        tx.set(budgetRef, { ...v, reserved, updatedAt: new Date().toISOString() });
+        tx.set(costRef, {
+          month,
+          maximum,
+          state: 'reserved',
+          priceVersion,
+          updatedAt: new Date().toISOString(),
+        });
+        return;
+      }
       if (
         cost.state !== 'reserved' ||
-        cost.priceVersion !== PRICE_VERSION ||
+        cost.priceVersion !== priceVersion ||
         cost.maximum !== maximum
       )
         throw new Error('marketing_cost_already_used');
       if (cost.month === month) return;
       const oldRef = collection(c, 'marketingBudget').doc(cost.month),
         old = await tx.get(oldRef);
-      const reserved = reserveAmount(v, maximum);
+      const reserved = reserveAmount(v, maximum, v.limit);
       tx.set(budgetRef, {
         ...v,
         reserved,
-        limit: MONTHLY_LIMIT,
+        limit: v.limit,
         updatedAt: new Date().toISOString(),
       });
       tx.update(oldRef, {
@@ -107,20 +127,35 @@ export async function reserve(c: Context, job: Job) {
       tx.update(costRef, { month, previousMonth: cost.month, updatedAt: new Date().toISOString() });
       return;
     }
-    const reserved = reserveAmount(v, maximum);
+    const reserved = reserveAmount(v, maximum, v.limit);
     tx.set(budgetRef, {
       ...v,
       reserved,
-      limit: MONTHLY_LIMIT,
+      limit: v.limit,
       updatedAt: new Date().toISOString(),
     });
     tx.create(costRef, {
       month,
       maximum,
       state: 'reserved',
-      priceVersion: PRICE_VERSION,
+      priceVersion,
       updatedAt: new Date().toISOString(),
     });
+  });
+}
+export async function releaseUnsent(c: Context, job: Job) {
+  const costRef = collection(c, 'marketingCosts').doc(job.id);
+  await c.db.runTransaction(async (tx) => {
+    const cost = (await tx.get(costRef)).data();
+    if (!cost || cost.state !== 'reserved') return;
+    const budgetRef = collection(c, 'marketingBudget').doc(cost.month);
+    const budget = (await tx.get(budgetRef)).data();
+    if (!budget) throw new Error('marketing_budget_missing');
+    tx.update(budgetRef, {
+      reserved: Math.max(0, budget.reserved - cost.maximum),
+      updatedAt: new Date().toISOString(),
+    });
+    tx.update(costRef, { state: 'released', actual: 0 });
   });
 }
 export async function settle(c: Context, job: Job, amount: number | null) {

@@ -3,9 +3,7 @@ const { loadEnvConfig } = nextEnv;
 loadEnvConfig(process.cwd());
 const names = [
   'FIREBASE_SERVICE_ACCOUNT_JSON',
-  'MARKETING_GEMINI_KEY',
-  'MARKETING_TEXT_MODEL',
-  'MARKETING_IMAGE_MODEL',
+  'AI_SETTINGS_ENCRYPTION_KEY',
   'MARKETING_BUCKET',
   'MARKETING_QUEUE',
   'MARKETING_WORKER_URL',
@@ -28,6 +26,8 @@ console.log(
   JSON.stringify(
     {
       mode: 'local-presence-check-only-no-network',
+      credentialCheck: 'not-queried-use-ai-settings-screen',
+      legacyEnvironmentCredentialPresent: !!process.env.MARKETING_GEMINI_KEY,
       missing,
       enabled: {
         feature: process.env.MARKETING_ENABLED === 'true',

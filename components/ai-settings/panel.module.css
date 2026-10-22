@@ -1,0 +1,290 @@
+.root {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  color: var(--text, #17213e);
+}
+.root h2 {
+  font-size: 24px;
+  margin: 0 0 8px;
+}
+.root h3 {
+  font-size: 17px;
+  margin: 0 0 14px;
+}
+.root h4 {
+  font-size: 14px;
+  margin: 12px 0 8px;
+}
+.root p {
+  line-height: 1.65;
+  margin: 8px 0;
+}
+.root ul {
+  margin: 10px 0;
+  padding-left: 20px;
+  line-height: 1.7;
+}
+.heading,
+.cardHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+.heading {
+  padding: 4px;
+}
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #596989;
+}
+.muted {
+  color: var(--muted, #63718e);
+  font-size: 13px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  min-width: 0;
+}
+.card {
+  background: var(--surface, #fff);
+  padding: 22px;
+  border: 1px solid #dde2ef;
+  border-radius: 14px;
+  min-width: 0;
+}
+.badge {
+  display: inline-block;
+  background: #f0f2fb;
+  color: #344276;
+  border: 1px solid #dce1f3;
+  padding: 5px 9px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.root button,
+.form button,
+.actions button {
+  font: inherit;
+  font-size: 13px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #cbd3e9;
+  border-radius: 8px;
+  background: #fff;
+  color: #25356a;
+  cursor: pointer;
+}
+.root button:disabled,
+.form button:disabled,
+.actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.root button:focus-visible,
+.form button:focus-visible,
+.actions button:focus-visible,
+.form input:focus-visible,
+.advanced summary:focus-visible {
+  outline: 3px solid #a3acf6;
+  outline-offset: 3px;
+}
+.root .primary,
+.form .primary,
+.actions .primary {
+  background: #263775;
+  color: white;
+  border-color: #263775;
+}
+.actions .danger {
+  background: #b52a42;
+  color: white;
+  border-color: #b52a42;
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 14px 0 0;
+}
+.form {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin-top: 16px;
+}
+.form label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.form input {
+  font: inherit;
+  padding: 12px;
+  border: 1px solid #c7d0e6;
+  border-radius: 8px;
+  min-height: 44px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  color: #17213e;
+  background: #fff;
+}
+.form > button {
+  justify-self: start;
+}
+.note,
+.error,
+.success {
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.note {
+  background: #fff9e8;
+  border: 1px solid #f1dca3;
+  color: #805d12;
+}
+.error {
+  background: #fff1f3;
+  border: 1px solid #edbbc4;
+  color: #9f2340;
+}
+.success {
+  background: #edf7f1;
+  border: 1px solid #bfdcc9;
+  color: #235f3a;
+}
+.ledger {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 22px 0;
+}
+.ledger dt {
+  font-size: 12px;
+  color: #63718e;
+}
+.ledger dd {
+  margin: 9px 0;
+  font-weight: 700;
+  font-size: 19px;
+  overflow-wrap: anywhere;
+}
+.progress {
+  width: 100%;
+  height: 8px;
+  accent-color: #31458f;
+  display: block;
+  margin-bottom: 14px;
+}
+.capabilities {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.capabilities article {
+  border: 1px solid #e1e6f2;
+  border-radius: 10px;
+  padding: 14px;
+  min-width: 0;
+}
+.capabilities article h4 {
+  margin-top: 0;
+}
+.capabilities li {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.advanced {
+  margin: 18px 0;
+  color: #53617f;
+  font-size: 13px;
+}
+.advanced summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 12px 0;
+  color: #263775;
+  font-weight: 600;
+}
+.modelList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.modelList article {
+  padding: 12px;
+  border: 1px solid #e1e6f2;
+  border-radius: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.cardHeading h3 {
+  margin-top: 3px;
+}
+.cardHeading .badge {
+  flex-shrink: 0;
+}
+@media (max-width: 1100px) {
+  .capabilities {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ledger dd {
+    font-size: 16px;
+  }
+}
+@media (max-width: 760px) {
+  .modelList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .heading {
+    flex-direction: column;
+  }
+  .card {
+    padding: 18px;
+  }
+  .cardHeading {
+    flex-wrap: wrap;
+  }
+  .ledger {
+    gap: 8px;
+  }
+  .ledger dd {
+    font-size: 15px;
+  }
+  .root h2 {
+    font-size: 22px;
+  }
+}
+@media (max-width: 420px) {
+  .capabilities {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ledger {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ledger div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+  }
+  .ledger dd {
+    margin: 3px 0;
+  }
+  .actions button {
+    flex: 1 1 auto;
+  }
+}

@@ -1,5 +1,7 @@
 # Marketing infrastructure (not applied)
 
+AI Settings credentials require the same server-only `AI_SETTINGS_ENCRYPTION_KEY` secret on Vercel and the worker. Supply its Secret Manager reference through reviewed worker configuration; do not put the value in Terraform variables/state. Saving/deleting an application credential does not update Cloud Run configuration or enable generation. See `../../docs/ai-settings-setup.md`; no additional secret or infrastructure was provisioned in this implementation.
+
 This configuration is reviewable infrastructure code, not proof of deployed infrastructure. Terraform 1.17.0 portable and Google provider 7.46.1 were used for init (backend disabled) and validate successfully, without accessing Google Cloud credentials. The provider lockfile is included. A reviewed cloud plan is still mandatory before apply. No billing account is created or linked by this configuration.
 
 1. Confirm project ownership, enabled billing/quota, actual regional prices and the complete cost approval. Enable neither generation nor scheduler before this approval. Applying even with flags off creates resources that can have storage/build costs.

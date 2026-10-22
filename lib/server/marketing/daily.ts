@@ -9,7 +9,7 @@ import { ownerContext } from '../firebase-admin';
 import { flushOutbox } from './tasks';
 import { telegramSender, TelegramDeliveryError } from '../../telegram-transport';
 export async function prepareDay(c: Context, date: string) {
-  requireGeneration();
+  await requireGeneration(c);
   const plan = await read<Plan>(c, 'marketingPlans', date.slice(0, 7));
   if (!plan?.approved) return { state: 'no_approved_plan', count: 0 };
   const items = plan.items.filter((x) => x.date === date && (x.approved ?? plan.approved));

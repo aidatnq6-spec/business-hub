@@ -4,6 +4,8 @@ Ngày: 22/10/2026. Múi giờ nghiệp vụ: Asia/Ho_Chi_Minh.
 
 Trạng thái: người dùng đã duyệt toàn bộ tài liệu trong hội thoại ngày 22/10/2026 và trước đó đã duyệt bố cục, cách thao tác, nguyên tắc quản lý khóa. Được phép lập kế hoạch triển khai. Chưa cho phép bật AI trả phí hoặc lịch tự động.
 
+Tiến độ: đã triển khai code và kiểm chứng cục bộ theo kế hoạch; xem `docs/verification/2026-10-22-ai-settings.md`. Chưa triển khai thay đổi mới lên cloud hoặc kích hoạt dịch vụ trả phí/lịch.
+
 ## Mục tiêu và phạm vi
 
 Thay phần Cài đặt AI mô phỏng bằng cấu hình thật cho trợ lý Marketing. Người dùng chọn công việc; hệ thống chọn model từ cấu hình đã được kiểm tra, trong ngân sách cho phép. Hiển thị tình trạng kết nối và lỗi theo từng năng lực, tránh thông báo lưu thành công khi chưa lưu thật.

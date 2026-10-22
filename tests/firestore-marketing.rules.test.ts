@@ -1,5 +1,14 @@
 import { readFileSync } from 'node:fs';
-import { beforeAll, afterAll, beforeEach, describe, it } from 'vitest';
+import { beforeAll, afterAll, beforeEach, describe, it, expect, vi } from 'vitest';
+vi.mock('server-only', () => ({}));
+import {
+  initializeApp as initializeAdminApp,
+  deleteApp as deleteAdminApp,
+} from 'firebase-admin/app';
+import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
+import { updateBudget, readBudget } from '../lib/server/ai-settings/budget';
+import { reserve } from '../lib/server/marketing/store';
+import type { Job } from '../lib/marketing/types';
 import {
   initializeTestEnvironment,
   assertFails,
@@ -19,6 +28,29 @@ beforeAll(async () => {
 beforeEach(async () => env.clearFirestore());
 afterAll(async () => env?.cleanup());
 describe('Marketing server-owned namespace', () => {
+  it('enforces the configured cap under real concurrent Firestore transactions', async () => {
+    const app = initializeAdminApp(
+      { projectId: 'demo-business-hub-marketing' },
+      'ai-settings-budget-test',
+    );
+    const db = getAdminFirestore(app),
+      c = { db, uid: 'budget-concurrency' };
+    try {
+      await updateBudget(c, 30000, 0);
+      const results = await Promise.allSettled(
+        Array.from({ length: 8 }, (_, i) =>
+          reserve(c, { id: 'emulator-job-' + i, stage: 'draft' } as Job),
+        ),
+      );
+      expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(2);
+      const budget = await readBudget(c);
+      expect(budget).toMatchObject({ limit: 30000, reserved: 30000 });
+      await expect(updateBudget(c, 29999, 1)).rejects.toThrow('ai_budget_below_committed');
+    } finally {
+      await db.terminate();
+      await deleteAdminApp(app);
+    }
+  });
   it('allows legacy owner writes, including nested paths', async () => {
     const db = env.authenticatedContext('owner', { email: 'aidatnq6@gmail.com' }).firestore();
     await assertSucceeds(setDoc(doc(db, 'users/owner/customers/customer'), { name: 'real owner' }));
@@ -34,8 +66,24 @@ describe('Marketing server-owned namespace', () => {
       'marketingBudget/month',
       'marketingJobs/job',
       'marketingJobs/job/notes/note',
+      'marketingSettings/ai',
     ])
       await assertFails(setDoc(doc(db, 'users/owner/' + path), { approved: true }));
+  });
+  it('denies all client access to credential, audit and rate-limit roots', async () => {
+    for (const db of [
+      env.authenticatedContext('owner', { email: 'aidatnq6@gmail.com' }).firestore(),
+      env.unauthenticatedContext().firestore(),
+    ]) {
+      for (const path of [
+        'privateAiCredentials/owner/providers/gemini',
+        'privateAiAudit/owner/events/event',
+        'privateAiRateLimits/limit',
+      ]) {
+        await assertFails(setDoc(doc(db, path), { ciphertext: 'test' }));
+        await assertFails(getDoc(doc(db, path)));
+      }
+    }
   });
   it('allows the owner to read server data while denying other users', async () => {
     await env.withSecurityRulesDisabled(async (c) =>

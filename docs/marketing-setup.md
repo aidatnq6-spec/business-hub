@@ -1,5 +1,7 @@
 # Cài đặt Marketing Studio Đạt Nguyễn
 
+Phần Cài đặt AI thật (nhập khóa Gemini mã hóa, tự chọn model và hạn mức Marketing) được hướng dẫn tại [ai-settings-setup.md](ai-settings-setup.md). Cấu hình khóa trong ứng dụng thay thế env khi đã lưu; xóa có tombstone, không tự khôi phục qua khóa env cũ. Các cờ tạo nội dung/lịch tiếp tục giữ tắt.
+
 Marketing được bổ sung ở `/marketing`, sử dụng Firebase Auth chủ sở hữu hiện tại. Dữ liệu Marketing nằm riêng dưới `users/{uid}/marketing*`. Không dùng dữ liệu mẫu khi API hoặc Firebase chưa sẵn sàng.
 
 ## Khi màn hình báo thiếu Firebase Admin

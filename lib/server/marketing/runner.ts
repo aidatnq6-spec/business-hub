@@ -6,6 +6,8 @@ import { channels, type Bundle, type Brand, type Job, type Plan } from '../../ma
 import { assetData, saveAsset } from './assets';
 import { collection, read, reserve, settle, putJob, type Context } from './store';
 import { requireGeneration } from './config';
+import { prepareExecution, ProviderPreDispatchError } from '../ai-settings/execution';
+import { selectModel, ESTIMATE_VND_PER_USD, ESTIMATE_BUFFER } from '../../ai-settings/catalog';
 import { flushOutbox } from './tasks';
 import { zipFiles } from '../../marketing/zip';
 
@@ -26,8 +28,14 @@ export async function runJob(
     data,
   ) => data,
 ) {
-  requireGeneration();
   const ref = collection(c, 'marketingJobs').doc(id);
+  const pending = (await ref.get()).data() as Job | undefined;
+  if (
+    !pending ||
+    !['plan', 'draft', 'image', 'speech', 'render', 'export', 'probe'].includes(pending.stage)
+  )
+    throw new Error('marketing_not_found');
+  await requireGeneration(c, pending.stage);
   const job = await c.db.runTransaction(async (tx) => {
     const s = await tx.get(ref),
       j = s.data() as Job | undefined;
@@ -72,7 +80,8 @@ export async function runJob(
           ? 'marketingPlans'
           : 'marketingBundles',
     target = collection(c, name).doc(job.bundleId);
-  let sideEffect = false;
+  let sideEffect = false,
+    paidResponses = 0;
   try {
     if (job.stage === 'probe') {
       const { bucket } = await import('./assets');
@@ -125,7 +134,8 @@ export async function runJob(
       if (b.style === 'tutorial' && !b.recordingId && ['speech', 'render'].includes(job.stage))
         throw new Error('marketing_material_missing');
     }
-    await reserve(c, job);
+    const selection = await prepareExecution(c, job);
+    await reserve(c, job, selection?.priceVersion);
     await c.db.runTransaction(async (tx) => {
       const snap = await tx.get(target);
       if (snap.data()?.revision !== job.revision) throw new Error('marketing_stale');
@@ -145,13 +155,15 @@ export async function runJob(
       cost: number | null = 0,
       next: Job['stage'] | null = null;
     if (job.stage === 'plan') {
-      const r = await proposePlan(value as Plan, brand);
+      const r = await proposePlan(value as Plan, brand, c, selection);
+      paidResponses++;
       patch = { items: r.items, approved: false, state: 'draft' };
       cost = r.cost;
     } else {
       const b = value as Bundle;
       if (job.stage === 'draft') {
-        const r = await draftContent(b, brand);
+        const r = await draftContent(b, brand, c, selection);
+        paidResponses++;
         patch = {
           ...r.draft,
           state: 'queued',
@@ -161,7 +173,8 @@ export async function runJob(
         cost = r.cost;
         next = 'image';
       } else if (job.stage === 'image') {
-        const r = await createImage(b.imagePrompt);
+        const r = await createImage(b.imagePrompt, c, selection);
+        paidResponses++;
         const branded = await composeImage(r.buffer, b.title, brand.name);
         const imageId = await saveAsset(c, b.id, 'image', 'image/png', branded);
         patch = { imageId, state: 'review' };
@@ -172,7 +185,8 @@ export async function runJob(
           throw new Error('marketing_script_invalid');
         const audio = [];
         for (const scene of scenes) {
-          const wave = await speak(scene.text);
+          const wave = await speak(scene.text, selection);
+          paidResponses++;
           audio.push({
             text: scene.text,
             id: await saveAsset(c, b.id, 'audio', 'audio/wav', wave),
@@ -186,11 +200,15 @@ export async function runJob(
           Buffer.from(JSON.stringify(audio)),
         );
         patch = { audioId, state: 'queued' };
-        cost = Math.ceil(
-          ((scenes.map((x) => [...x.text].length).reduce((a, b) => a + b, 0) * 16) / 1e6) *
-            30000 *
-            1.2,
-        );
+        const rate = selectModel('speech')?.prices.charactersUsdPerMillion;
+        cost =
+          typeof rate === 'number'
+            ? Math.ceil(
+                ((scenes.map((x) => [...x.text].length).reduce((a, b) => a + b, 0) * rate) / 1e6) *
+                  ESTIMATE_VND_PER_USD *
+                  ESTIMATE_BUFFER,
+              )
+            : null;
         next = 'render';
       } else if (job.stage === 'render') {
         if (!b.audioId || !b.imageId) throw new Error('marketing_material_missing');
@@ -295,6 +313,8 @@ export async function runJob(
     return { state: applied ? 'succeeded' : 'stale' };
   } catch (error) {
     const raw = error instanceof Error ? error.message : '';
+    // These guards run before the provider fetch; no paid request was dispatched.
+    if (error instanceof ProviderPreDispatchError && paidResponses === 0) sideEffect = false;
     const state =
       raw === 'marketing_stale'
         ? 'stale'
@@ -306,13 +326,36 @@ export async function runJob(
               ? 'uncertain'
               : 'failed';
     const code = /^marketing_[a-z_]+$/.test(raw) ? raw : 'marketing_job_failed';
-    await ref.update({ state, error: code, updatedAt: new Date().toISOString() });
     await c.db.runTransaction(async (tx) => {
-      const s = await tx.get(target);
+      const costRef = collection(c, 'marketingCosts').doc(job.id);
+      const [s, currentJob, costSnap] = await Promise.all([
+        tx.get(target),
+        tx.get(ref),
+        tx.get(costRef),
+      ]);
+      const charge = costSnap.data();
+      const budgetRef =
+        charge?.state === 'reserved' && !sideEffect
+          ? collection(c, 'marketingBudget').doc(charge.month)
+          : null;
+      const budget = budgetRef ? (await tx.get(budgetRef)).data() : null;
+      if (currentJob.data()?.attempts !== job.attempts + 1) return;
+      // Release and publication of retryability must be atomic; a new attempt
+      // cannot observe failed while the old worker still owns a reservation.
+      if (charge?.state === 'reserved') {
+        if (sideEffect) tx.update(costRef, { state: 'uncertain' });
+        else if (budgetRef && budget) {
+          tx.update(budgetRef, {
+            reserved: Math.max(0, budget.reserved - charge.maximum),
+            updatedAt: new Date().toISOString(),
+          });
+          tx.update(costRef, { state: 'released', actual: 0 });
+        }
+      }
+      tx.update(ref, { state, error: code, sideEffect, updatedAt: new Date().toISOString() });
       if (s.data()?.revision === job.revision)
         tx.update(target, { state, error: code, updatedAt: new Date().toISOString() });
     });
-    await settle(c, job, sideEffect ? null : 0);
     return { state };
   }
 }

@@ -18,7 +18,14 @@ vi.mock('@/lib/server/marketing/tasks', () => ({ flushOutbox: mocks.flush }));
 vi.mock('@/lib/server/marketing/config', () => ({
   requireGeneration: () => {},
   marketingConfig: () => ({ enabled: true, missing: [] }),
+  marketingReadiness: () => ({ enabled: true, missing: [] }),
 }));
+// This suite isolates the pipeline from credentials/providers; routing is tested separately.
+vi.mock('@/lib/server/ai-settings/execution', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/server/ai-settings/execution')>()),
+  prepareExecution: async () => null,
+}));
+import { ProviderPreDispatchError } from '@/lib/server/ai-settings/execution';
 vi.mock('@/lib/server/marketing/providers', () => ({
   draftContent: mocks.draft,
   createImage: mocks.image,
@@ -56,6 +63,77 @@ beforeEach(() => {
   });
 });
 describe('server Marketing workflow without paid services', () => {
+  it('keeps the speech reservation uncertain if a later scene fails its pre-dispatch guard', async () => {
+    const { c, docs } = setup(),
+      items = calendarSlots('2026-10'),
+      item = items[0];
+    const plan = { id: '2026-10', month: '2026-10', revision: 1, approved: true, items };
+    docs.set('users/owner/marketingBrand/profile', { ...initialBrand(), approved: true });
+    docs.set('users/owner/marketingPlans/2026-10', plan);
+    await createDailyBundle(c, item, plan);
+    const path = 'users/owner/marketingBundles/' + item.id;
+    docs.set(path, {
+      ...docs.get(path),
+      scenes: [{ text: 'First scene' }, { text: 'Second scene' }],
+      scriptRevision: 0,
+      scriptApprovedRevision: 0,
+      claims: [],
+      style: 'knowledge',
+    });
+    const id = jobId(item.id, 0, 'speech');
+    docs.set('users/owner/marketingJobs/' + id, {
+      id,
+      bundleId: item.id,
+      revision: 0,
+      stage: 'speech',
+      state: 'queued',
+      attempts: 0,
+      leaseUntil: 0,
+      sideEffect: false,
+      error: '',
+      createdAt: '',
+    });
+    mocks.speak
+      .mockResolvedValueOnce(Buffer.from('wave'))
+      .mockRejectedValueOnce(new ProviderPreDispatchError('marketing_voice_not_reviewed'));
+    mocks.save.mockResolvedValueOnce('audio-one');
+    expect(await runJob(c, id, renderer, probe)).toEqual({ state: 'uncertain' });
+    expect(docs.get('users/owner/marketingCosts/' + id)?.state).toBe('uncertain');
+    expect(docs.get('users/owner/marketingJobs/' + id)?.sideEffect).toBe(true);
+    expect(
+      docs.get(
+        'users/owner/marketingBudget/' +
+          new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).slice(0, 7),
+      )?.reserved,
+    ).toBe(10000);
+  });
+  it('releases an unsent failure and permits an explicit retry with a fresh execution snapshot', async () => {
+    const { c, docs } = setup(),
+      items = calendarSlots('2026-10'),
+      item = items[0];
+    const plan = { id: '2026-10', month: '2026-10', revision: 1, approved: true, items };
+    docs.set('users/owner/marketingBrand/profile', { ...initialBrand(), approved: true });
+    docs.set('users/owner/marketingPlans/2026-10', plan);
+    await createDailyBundle(c, item, plan);
+    const id = jobId(item.id, 0, 'draft');
+    docs.set('users/owner/marketingJobs/' + id, {
+      ...docs.get('users/owner/marketingJobs/' + id),
+      execution: { credentialRevision: 1 },
+    });
+    mocks.draft.mockRejectedValueOnce(new ProviderPreDispatchError('marketing_credential_changed'));
+    expect(await runJob(c, id, renderer, probe)).toEqual({ state: 'failed' });
+    expect(docs.get('users/owner/marketingJobs/' + id)?.sideEffect).toBe(false);
+    expect(docs.get('users/owner/marketingCosts/' + id)?.state).toBe('released');
+    const retry = await handleMarketing(req({ revision: 0 }), ['bundles', item.id, 'retry']);
+    expect(retry.status).toBe(202);
+    expect(docs.get('users/owner/marketingJobs/' + id)?.execution).toBeNull();
+    mocks.draft.mockResolvedValueOnce({
+      draft: { title: 'Verified retry', scenes: [] },
+      cost: 100,
+    });
+    expect(await runJob(c, id, renderer, probe)).toEqual({ state: 'succeeded' });
+    expect(docs.get('users/owner/marketingCosts/' + id)?.actual).toBe(100);
+  });
   it('can load and save a persisted brand repeatedly without sending storage metadata', async () => {
     const { docs } = setup();
     const original = { ...initialBrand(), approved: true, revision: 3 };
