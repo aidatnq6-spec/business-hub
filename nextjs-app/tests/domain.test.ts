@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createDemoData } from '@/lib/demo';
+import { createDemoData } from './fixtures/demo';
 import {
   businessDate,
   addDays,

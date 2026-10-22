@@ -1,5 +1,5 @@
-import { addDays, businessDate, shiftMonth, validateData } from './domain';
-import type { AppData } from './types';
+import { addDays, businessDate, shiftMonth, validateData } from '@/lib/domain';
+import type { AppData } from '@/lib/types';
 
 export function createDemoData(date = businessDate()): AppData {
   const month = date.slice(0, 7);

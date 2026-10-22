@@ -8,7 +8,7 @@ import {
   type Entity,
 } from '@/lib/types';
 import { businessDate, errorText, income, expense, applyChange } from '@/lib/domain';
-import { useHub } from './demo-provider';
+import { useHub } from './hub-provider';
 import { Button, Modal } from './ui';
 
 type Field = {
@@ -180,8 +180,9 @@ export function RecordEditor({
 }) {
   const hub = useHub();
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [cycle, setCycle] = useState(String(record?.type ?? 'monthly'));
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const raw: Record<string, unknown> = { ...record };
@@ -193,9 +194,13 @@ export function RecordEditor({
     if (collection === 'todos') raw.done = raw.status === 'done';
     try {
       applyChange(hub.data, collection, String(record?.id ?? 'validation-record'), raw);
-      if (hub.save(collection, raw)) onClose();
+      setSubmitting(true);
+      if (await hub.save(collection, raw)) onClose();
+      else setError('Chưa lưu được lên Firebase. Xem thông báo lỗi và thử lại.');
     } catch (e) {
       setError(errorText(e));
+    } finally {
+      setSubmitting(false);
     }
   }
   return (
@@ -290,7 +295,9 @@ export function RecordEditor({
           <Button secondary onClick={onClose}>
             Hủy
           </Button>
-          <Button type="submit">Lưu</Button>
+          <Button type="submit" disabled={submitting || hub.busy}>
+            {submitting ? 'Đang lưu…' : 'Lưu'}
+          </Button>
         </div>
       </form>
     </Modal>

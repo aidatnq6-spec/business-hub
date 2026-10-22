@@ -1,5 +1,5 @@
 'use client';
-import { useHub } from './demo-provider';
+import { useHub } from './hub-provider';
 import { businessDate, telegramReport } from '@/lib/domain';
 import { Button, Modal, copyText } from './ui';
 export function TelegramPreview({ onClose }: { onClose: () => void }) {
@@ -8,8 +8,8 @@ export function TelegramPreview({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="📨 Báo cáo Telegram hằng ngày" onClose={onClose} wide>
       <p className="demo-note">
-        Lịch dự kiến: 07:00 mỗi ngày (giờ Việt Nam). Đây là bản xem trước từ dữ liệu mẫu; chưa gửi
-        tin và chưa bật lịch thật.
+        Lịch dự kiến: 07:00 mỗi ngày (giờ Việt Nam). Đây là bản xem trước từ dữ liệu Firebase; chưa
+        gửi tin và chưa bật lịch thật.
       </p>
       {chunks.map((text, i) => (
         <div key={i}>

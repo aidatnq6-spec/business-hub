@@ -1,10 +1,10 @@
 'use client';
 import { useState } from 'react';
-import { useHub } from './demo-provider';
+import { useHub } from './hub-provider';
 import { Button, Modal } from './ui';
 import { exportBackup, importBackup, errorText, businessDate } from '@/lib/domain';
 import { COLLECTION_LABELS, type AppData, type CollectionName } from '@/lib/types';
-const HISTORY_KEY = 'business-hub:next:demo-backup-history';
+const HISTORY_KEY = 'business-hub:next:backup-history';
 interface BackupHistory {
   filename: string;
   date: string;
@@ -35,13 +35,16 @@ export function BackupDialog({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState('');
   const [fileName, setFileName] = useState('');
   const [history, setHistory] = useState(loadHistory);
+  const [importing, setImporting] = useState(false);
   function download() {
     try {
-      const blob = new Blob([exportBackup(hub.data)], { type: 'application/json' });
+      const blob = new Blob([exportBackup(hub.data, hub.user?.email ?? '')], {
+        type: 'application/json',
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `business-hub-demo-${businessDate()}.json`;
+      a.download = `business-hub-${businessDate()}.json`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       const next = [
@@ -60,7 +63,7 @@ export function BackupDialog({ onClose }: { onClose: () => void }) {
         hub.notify('Đã xuất backup; không lưu được lịch sử trên trình duyệt.');
         return;
       }
-      hub.notify('Đã xuất backup dữ liệu mẫu.');
+      hub.notify('Đã xuất backup dữ liệu Firebase.');
     } catch (e) {
       setError(errorText(e));
     }
@@ -80,7 +83,10 @@ export function BackupDialog({ onClose }: { onClose: () => void }) {
   }
   return (
     <Modal title="💾 Backup & Restore dữ liệu" onClose={onClose}>
-      <p className="demo-note">Backup/import chỉ tác động kho dữ liệu mẫu của bản Next.js.</p>
+      <p className="demo-note">
+        Backup từ tài khoản {hub.user?.email}. Khi xác nhận nhập, dữ liệu sẽ được gộp lên Firebase
+        của tài khoản này.
+      </p>
       <div className="section">
         <h3>📥 Xuất Backup</h3>
         <p className="muted">Tải JSON gồm toàn bộ nhóm dữ liệu, ID và thời điểm tạo.</p>
@@ -118,15 +124,25 @@ export function BackupDialog({ onClose }: { onClose: () => void }) {
               </li>
             ))}
           </ul>
-          <p>Gộp backup sẽ thay thế các bản ghi mẫu trùng ID. Nên xuất backup trước.</p>
+          <p>Gộp backup cập nhật các bản ghi trùng ID trên Firebase. Nên xuất backup trước.</p>
           <Button
-            onClick={() => {
-              hub.importData(incoming);
-              setIncoming(null);
-              onClose();
+            disabled={importing || hub.busy || hub.syncStatus !== 'live'}
+            onClick={async () => {
+              setImporting(true);
+              try {
+                if (await hub.importData(incoming)) {
+                  setIncoming(null);
+                  onClose();
+                } else
+                  setError(
+                    'Chưa hoàn tất nhập backup. Xem thông báo số bản ghi đã ghi và thử lại.',
+                  );
+              } finally {
+                setImporting(false);
+              }
             }}
           >
-            Xác nhận gộp dữ liệu mẫu
+            {importing ? 'Đang gộp…' : 'Xác nhận gộp lên Firebase'}
           </Button>
         </div>
       )}

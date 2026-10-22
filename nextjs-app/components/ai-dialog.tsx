@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useHub } from './demo-provider';
+import { useHub } from './hub-provider';
 import { Button, Modal, copyText } from './ui';
 import { mockAI, type AIKind } from '@/lib/mock-ai';
 import type { Deal } from '@/lib/types';
@@ -33,7 +33,9 @@ export function AIDialog({
   }
   return (
     <Modal title={titles[kind]} onClose={onClose}>
-      <p className="demo-note">Bản dữ liệu mẫu: kết quả mô phỏng, không gọi AI thật.</p>
+      <p className="demo-note">
+        Dữ liệu lấy từ Firebase; phần diễn giải AI vẫn mô phỏng, không gửi dữ liệu đến dịch vụ AI.
+      </p>
       {kind === 'it' && (
         <label className="field">
           Mô tả lỗi

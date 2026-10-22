@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useHub } from './demo-provider';
+import { useHub } from './hub-provider';
 import { businessDate, addDays, dueLabel, isDone, moneyText, rentIsPaid } from '@/lib/domain';
 import { COLLECTION_LABELS, type EditableCollection, type Entity, type Todo } from '@/lib/types';
 import { AreaBadge, Button, DeleteConfirm, Empty, MonthNav, Section, Modal, copyText } from './ui';
@@ -80,6 +80,7 @@ export function Operations() {
                   type="checkbox"
                   aria-label={'Đã thu tiền thuê ' + a.address}
                   checked={rentIsPaid(data, a.id, month)}
+                  disabled={hub.busy || hub.syncStatus !== 'live'}
                   onChange={() => hub.toggleRent(a.id, month)}
                 />
                 <div>
@@ -109,8 +110,8 @@ export function Operations() {
             ))}
             {!occupied.length && <Empty>Chưa có căn đang thuê.</Empty>}
             <p className="muted">
-              Còn phải thu: <strong>{moneyText(expected - paid)}</strong>. Trạng thái mẫu được lưu
-              cùng backup.
+              Còn phải thu: <strong>{moneyText(expected - paid)}</strong>. Trạng thái được đồng bộ
+              Firebase và lưu cùng backup.
             </p>
           </Section>
           <Section
@@ -204,10 +205,10 @@ export function Operations() {
             </div>
             <form
               className="form-inline"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
                 if (
-                  hub.save('todos', {
+                  await hub.save('todos', {
                     text: quick,
                     dueDate: date,
                     mang: 'kh',
@@ -227,7 +228,9 @@ export function Operations() {
                 placeholder="Thêm việc cần làm hôm nay…"
                 required
               />
-              <Button type="submit">+ Thêm</Button>
+              <Button type="submit" disabled={hub.busy || hub.syncStatus !== 'live'}>
+                + Thêm
+              </Button>
             </form>
             {todos.map((t) => (
               <div className={'todo-line ' + (isDone(t) ? 'done' : '')} key={t.id}>
@@ -401,7 +404,7 @@ export function Operations() {
                     ✏️ Sửa HĐ
                   </button>
                   {a.link && (
-                    <button onClick={() => setMessage('Liên kết hợp đồng mẫu: ' + a.link)}>
+                    <button onClick={() => setMessage('Liên kết hợp đồng: ' + a.link)}>
                       🔗 HĐ
                     </button>
                   )}

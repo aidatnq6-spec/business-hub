@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useHub } from './demo-provider';
+import { useHub } from './hub-provider';
 import { businessDate, dueLabel, moneyText, dueDebts } from '@/lib/domain';
 import { type Debt } from '@/lib/types';
 import { AreaBadge, AreaSelect, Button, DeleteConfirm, Empty, KPIs, Section } from './ui';
@@ -85,10 +85,12 @@ export function Debts() {
                       max={d.amount}
                       defaultValue={d.paid}
                       key={String(d.paid)}
-                      onBlur={(e) => {
+                      disabled={hub.busy || hub.syncStatus !== 'live'}
+                      onBlur={async (e) => {
+                        const input = e.currentTarget;
                         const paid = Number(e.target.value);
-                        if (paid !== d.paid && !hub.save('debts', { ...d, paid }))
-                          e.target.value = String(d.paid);
+                        if (paid !== d.paid && !(await hub.save('debts', { ...d, paid })))
+                          input.value = String(d.paid);
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') e.currentTarget.blur();

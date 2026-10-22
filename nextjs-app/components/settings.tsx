@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useHub } from './demo-provider';
-import { Button, Modal, Section } from './ui';
+import { useHub } from './hub-provider';
+import { Button, Section } from './ui';
 import { TelegramPreview } from './telegram-preview';
 import { MODEL_OPTIONS } from '@/lib/models';
 const models = MODEL_OPTIONS.map((m) => m.id);
@@ -10,7 +10,6 @@ export function Settings() {
   const [model, setModel] = useState(models[0]);
   const [key, setKey] = useState('');
   const [telegram, setTelegram] = useState(false);
-  const [reset, setReset] = useState(false);
   useEffect(() => {
     queueMicrotask(() => {
       try {
@@ -26,7 +25,7 @@ export function Settings() {
       <div className="page-heading">
         <div>
           <h1>⚙️ Cài đặt</h1>
-          <p>Cấu hình bản dùng thử Business Hub</p>
+          <p>Cấu hình Business Hub</p>
         </div>
       </div>
       <Section title="🤖 Cài đặt AI">
@@ -100,38 +99,20 @@ export function Settings() {
           Thử nhắc việc trong ứng dụng
         </Button>
       </Section>
-      <Section title="🧪 Dữ liệu mẫu">
+      <Section title="☁️ Dữ liệu Firebase">
         <p>
-          Thay đổi được lưu riêng trong trình duyệt này. Firebase và dữ liệu của phần mềm kia không
-          bị tác động.
+          Tài khoản: <strong>{hub.user?.email}</strong>
         </p>
-        <Button secondary onClick={() => setReset(true)}>
-          Khôi phục dữ liệu mẫu ban đầu
+        <p>
+          Dữ liệu được đồng bộ trực tiếp với Firebase của Business Hub. Các thay đổi cũng xuất hiện
+          ở bản cũ dùng chung tài khoản.
+        </p>
+        <p className="muted">Không nạp hoặc tự nhập dữ liệu mẫu lên Firebase.</p>
+        <Button secondary disabled={hub.busy} onClick={hub.retry}>
+          Tải lại dữ liệu Firebase
         </Button>
       </Section>
-      {telegram && <TelegramPreview onClose={() => setTelegram(false)} />}{' '}
-      {reset && (
-        <Modal title="Khôi phục dữ liệu mẫu?" onClose={() => setReset(false)}>
-          <p>
-            Các thay đổi mẫu trên trình duyệt này sẽ được thay bằng bộ dữ liệu ban đầu. Hãy xuất
-            backup nếu muốn giữ lại.
-          </p>
-          <div className="modal-actions">
-            <Button secondary onClick={() => setReset(false)}>
-              Hủy
-            </Button>
-            <Button
-              danger
-              onClick={() => {
-                hub.reset();
-                setReset(false);
-              }}
-            >
-              Khôi phục dữ liệu mẫu
-            </Button>
-          </div>
-        </Modal>
-      )}
+      {telegram && <TelegramPreview onClose={() => setTelegram(false)} />}
     </div>
   );
 }

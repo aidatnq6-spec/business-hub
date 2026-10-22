@@ -1,6 +1,10 @@
 # Thiết kế chuyển Business Hub sang Next.js
 
-Trạng thái: người dùng đã cho phép triển khai giao diện, nghiệp vụ và kiểm thử bằng dữ liệu giả ngày 22/10/2026. Bản mock đã được xây dựng tại `nextjs-app/`; kết nối dịch vụ thật và triển khai production chưa kích hoạt.
+Trạng thái: ngày 22/10/2026 người dùng yêu cầu chuyển từ dữ liệu giả sang dữ liệu Firebase đang có. Bản Next.js đã được kết nối Firebase Auth/Firestore client tại `nextjs-app/`, không nạp dữ liệu mẫu. Việc tải dữ liệu cloud thật cần người dùng đăng nhập bằng tài khoản hiện tại trong trình duyệt. AI, lịch gửi Telegram và triển khai production chưa kích hoạt.
+
+## Cập nhật tích hợp Firebase thật
+
+Theo yêu cầu mới, dùng cấu hình Firebase Web đã cung cấp trong `nextjs-app/.env.local` (ngoài Git), đăng nhập Email/Password với tài khoản chủ sở hữu và đọc/ghi đúng `users/{uid}/{collection}`. Không seed, không fallback mock, không sửa rules hoặc triển khai hosting. Fixture đã chuyển sang `tests/fixtures/`; kho localStorage mẫu cũ không được đọc hoặc tự nhập lên cloud. Các thao tác ghi thông báo thành công sau khi Firebase xác nhận; transaction phát hiện sửa đồng thời. Thu tiền thuê và việc định kỳ giữ ID tương thích bản HTML. Chi tiết thực hiện: `docs/plans/2026-10-22-firebase-live.md`. Các phần mô tả “chưa bật Firebase” bên dưới ghi lại trạng thái của giai đoạn mock trước yêu cầu này; cập nhật này là trạng thái hiện tại.
 
 ## Mục tiêu
 

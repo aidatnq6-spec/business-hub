@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useHub } from './demo-provider';
+import { useHub } from './hub-provider';
 import { AREAS, STAGES, type Deal, type Stage } from '@/lib/types';
 import { moneyText, shortMoney } from '@/lib/domain';
 import { SCRIPTS, QUICK_SCRIPTS } from '@/lib/scripts';
@@ -115,7 +115,12 @@ export function Sale() {
                     <div className="deal-actions">
                       <button
                         className="da-btn"
-                        disabled={d.stage === 'won' || d.stage === 'lost'}
+                        disabled={
+                          hub.busy ||
+                          hub.syncStatus !== 'live' ||
+                          d.stage === 'won' ||
+                          d.stage === 'lost'
+                        }
                         onClick={() => {
                           const order: Stage[] = ['new', 'contact', 'nego', 'won'];
                           const index = order.indexOf(d.stage);

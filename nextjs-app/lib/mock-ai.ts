@@ -23,7 +23,7 @@ export function mockAI(
   if (kind === 'forecast')
     return (
       prefix +
-      `DỰ BÁO THAM KHẢO\nDựa trên dữ liệu mẫu hiện tại:\n• Thu tham chiếu: ${moneyText(t.thu)}\n• Chi tham chiếu: ${moneyText(t.chi)}\n• Chênh lệch: ${moneyText(t.net)}\n\nTheo dõi khoản đến hạn, xác nhận lịch thu tiền thuê và rà soát các khoản chi. Đây là kịch bản mẫu, không phải dự báo từ AI.`
+      `DỰ BÁO THAM KHẢO\nDựa trên dữ liệu hiện tại:\n• Thu tham chiếu: ${moneyText(t.thu)}\n• Chi tham chiếu: ${moneyText(t.chi)}\n• Chênh lệch: ${moneyText(t.net)}\n\nTheo dõi khoản đến hạn, xác nhận lịch thu tiền thuê và rà soát các khoản chi. Đây là kịch bản mẫu, không phải dự báo từ AI.`
     );
   const areaText = Object.entries(AREAS)
     .map(([key, value]) => {

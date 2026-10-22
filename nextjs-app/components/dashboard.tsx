@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useHub } from './demo-provider';
+import { useHub } from './hub-provider';
 import {
   businessDate,
   dueDebts,
@@ -89,7 +89,9 @@ export function Dashboard() {
               <p className="muted">
                 {active.length} deal đang chạy · {todo.length} việc tồn · {empty} căn trống
               </p>
-              <p className="muted">Điểm tổng hợp từ dữ liệu mẫu, theo công thức của ứng dụng.</p>
+              <p className="muted">
+                Điểm tổng hợp từ dữ liệu Firebase, theo công thức của ứng dụng.
+              </p>
             </div>
           </div>
         </Section>

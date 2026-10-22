@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useHub } from './demo-provider';
+import { useHub } from './hub-provider';
 import { businessDate, income, expense, moneyText, shiftMonth, totals } from '@/lib/domain';
 import { AREAS } from '@/lib/types';
 import { AreaBadge, Button, KPIs, MonthNav, Section, Empty } from './ui';

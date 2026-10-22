@@ -1,7 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { DemoProvider, STORAGE_KEY, useHub } from '@/components/demo-provider';
+import { HubProvider, useHub } from '@/components/hub-provider';
+import { FakeGateway } from './fake-gateway';
+import { OWNER_EMAIL } from '@/lib/cloud-data';
+let gateway: FakeGateway;
+beforeEach(() => {
+  gateway = new FakeGateway(materializeRecurring(createDemoData()));
+});
 import { Sale } from '@/components/sale';
 import { Accounting } from '@/components/accounting';
 import { Operations } from '@/components/operations';
@@ -13,8 +19,8 @@ import { TelegramPreview } from '@/components/telegram-preview';
 import { BackupDialog } from '@/components/backup-dialog';
 import { HubShell } from '@/components/shell';
 import Login from '@/app/login/page';
-import { createDemoData } from '@/lib/demo';
-import { businessDate, exportBackup, validateData } from '@/lib/domain';
+import { createDemoData } from './fixtures/demo';
+import { businessDate, exportBackup, materializeRecurring } from '@/lib/domain';
 
 vi.mock('next/dynamic', () => ({
   default: () =>
@@ -41,11 +47,11 @@ function Notice() {
 }
 async function mount(ui: React.ReactNode) {
   const result = render(
-    <DemoProvider>
+    <HubProvider gateway={gateway}>
       <Ready />
       <Notice />
       {ui}
-    </DemoProvider>,
+    </HubProvider>,
   );
   await waitFor(() => expect(screen.getByTestId('ready')).toHaveTextContent('ready'));
   return result;
@@ -71,11 +77,7 @@ describe('editable screens', () => {
     await user.type(within(dialog).getByLabelText(/Tên khách hàng/), 'Khách thử mới');
     await user.click(within(dialog).getByRole('button', { name: 'Lưu' }));
     await waitFor(() => expect(screen.getByText('Khách thử mới')).toBeInTheDocument());
-    expect(
-      validateData(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).deals.some(
-        (d) => d.ten === 'Khách thử mới',
-      ),
-    ).toBe(true);
+    expect(gateway.data.deals.some((d) => d.ten === 'Khách thử mới')).toBe(true);
     app.unmount();
     await mount(<Sale />);
     expect(screen.getByText('Khách thử mới')).toBeInTheDocument();
@@ -144,7 +146,7 @@ describe('editable screens', () => {
     });
     await user.click(checkbox);
     expect(checkbox).toBeChecked();
-    const data = validateData(JSON.parse(localStorage.getItem(STORAGE_KEY)!));
+    const data = gateway.data;
     expect(data.rentPayments.some((p) => p.apartmentId === 'apt-1' && p.paid)).toBe(true);
   });
   it('creates an active monthly reminder for today without duplicating its todo', async () => {
@@ -158,7 +160,7 @@ describe('editable screens', () => {
     await user.type(day, String(Number(businessDate().slice(-2))));
     await user.click(within(dialog).getByRole('button', { name: 'Lưu' }));
     await user.click(screen.getByRole('button', { name: 'Kiểm tra việc đến hạn' }));
-    const data = validateData(JSON.parse(localStorage.getItem(STORAGE_KEY)!));
+    const data = gateway.data;
     expect(data.todos.filter((t) => t.text === 'Việc định kỳ thử')).toHaveLength(1);
   });
   it('closes an editor with Escape and restores keyboard focus', async () => {
@@ -174,7 +176,7 @@ describe('editable screens', () => {
   it('renders imported HTML-like names as text rather than executable markup', async () => {
     const d = createDemoData();
     d.deals[0].ten = '<img src=x onerror=alert(1)>';
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+    gateway.data = d;
     const view = await mount(<Sale />);
     expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeInTheDocument();
     expect(view.container.querySelector('img')).toBeNull();
@@ -203,7 +205,7 @@ describe('mock integrations and safety boundaries', () => {
   it('rejects a malformed backup without changing current data', async () => {
     const user = userEvent.setup();
     await mount(<BackupDialog onClose={() => {}} />);
-    const before = localStorage.getItem(STORAGE_KEY);
+    const before = JSON.stringify(gateway.data);
     const file = new File(['{"appName":"Other","version":3,"data":{}}'], 'bad.json', {
       type: 'application/json',
     });
@@ -212,7 +214,7 @@ describe('mock integrations and safety boundaries', () => {
     });
     await user.upload(screen.getByLabelText('Chọn file JSON'), file);
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
-    expect(localStorage.getItem(STORAGE_KEY)).toBe(before);
+    expect(JSON.stringify(gateway.data)).toBe(before);
   });
   it('previews and merges a valid backup only after confirmation', async () => {
     const user = userEvent.setup();
@@ -224,13 +226,9 @@ describe('mock integrations and safety boundaries', () => {
     Object.defineProperty(file, 'text', { value: async () => text });
     await user.upload(screen.getByLabelText('Chọn file JSON'), file);
     await screen.findByText('Xác nhận gộp: backup.json');
-    expect(validateData(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).deals[0].ten).not.toBe(
-      'Khách nhập backup',
-    );
-    await user.click(screen.getByRole('button', { name: 'Xác nhận gộp dữ liệu mẫu' }));
-    expect(validateData(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).deals[0].ten).toBe(
-      'Khách nhập backup',
-    );
+    expect(gateway.data.deals[0].ten).not.toBe('Khách nhập backup');
+    await user.click(screen.getByRole('button', { name: 'Xác nhận gộp lên Firebase' }));
+    expect(gateway.data.deals[0].ten).toBe('Khách nhập backup');
   });
   it('keeps the key input out of persistent mock data and never sends it', async () => {
     const user = userEvent.setup();
@@ -239,7 +237,7 @@ describe('mock integrations and safety boundaries', () => {
     await mount(<Settings />);
     await user.type(screen.getByLabelText('OpenRouter API key (nhập thử)'), 'test-only-key');
     await user.click(screen.getByRole('button', { name: 'Lưu cài đặt AI' }));
-    expect(localStorage.getItem(STORAGE_KEY)).not.toContain('test-only-key');
+    expect(JSON.stringify(gateway.data)).not.toContain('test-only-key');
     expect(fetch).not.toHaveBeenCalled();
     expect(screen.getByLabelText('OpenRouter API key (nhập thử)')).toHaveValue('');
     vi.unstubAllGlobals();
@@ -256,7 +254,7 @@ describe('mock integrations and safety boundaries', () => {
 });
 
 describe('regressions found during compatibility review', () => {
-  it('signs out and re-enters the demo without a real account or network request', async () => {
+  it('signs out and signs back in with Firebase credentials through the gateway', async () => {
     function SessionFlow() {
       const hub = useHub();
       return hub.authenticated ? (
@@ -270,8 +268,10 @@ describe('regressions found during compatibility review', () => {
     const user = userEvent.setup();
     await mount(<SessionFlow />);
     await user.click(screen.getByRole('button', { name: 'Đăng xuất' }));
-    expect(screen.getByRole('button', { name: 'Vào bản dùng thử' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Vào bản dùng thử' }));
+    expect(screen.getByRole('button', { name: 'Đăng nhập' })).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Email'), OWNER_EMAIL);
+    await user.type(screen.getByLabelText('Mật khẩu'), 'fixture-password');
+    await user.click(screen.getByRole('button', { name: 'Đăng nhập' }));
     expect(screen.getByText('Demo session content')).toBeInTheDocument();
     expect(navigation.push).toHaveBeenCalledWith('/');
   });
@@ -279,7 +279,7 @@ describe('regressions found during compatibility review', () => {
     const user = userEvent.setup();
     const d = createDemoData();
     d.todos.find((t) => t.id === 'todo-6')!.status = 'open';
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+    gateway.data = d;
     await mount(<Operations />);
     await user.click(screen.getByRole('button', { name: 'Đã xong' }));
     await user.click(
@@ -288,11 +288,7 @@ describe('regressions found during compatibility review', () => {
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByLabelText('Trạng thái')).toHaveValue('done');
     await user.click(within(dialog).getByRole('button', { name: 'Lưu' }));
-    expect(
-      validateData(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).todos.find(
-        (t) => t.id === 'todo-6',
-      )?.done,
-    ).toBe(true);
+    expect(gateway.data.todos.find((t) => t.id === 'todo-6')?.done).toBe(true);
   });
   it('supports keyboard selection from global search', async () => {
     const user = userEvent.setup();
@@ -308,10 +304,11 @@ describe('regressions found during compatibility review', () => {
     expect(navigation.push).toHaveBeenCalledWith('/sale');
     expect(search).toHaveValue('');
   });
-  it('recovers from invalid saved mock data without crashing', async () => {
-    localStorage.setItem(STORAGE_KEY, '{invalid json');
+  it('ignores old mock localStorage instead of loading or uploading it', async () => {
+    localStorage.setItem('business-hub:next:mock:v1', '{invalid json');
     await mount(<Sale />);
-    expect(screen.getByRole('status')).toHaveTextContent(/Dữ liệu mẫu đã lưu không hợp lệ/);
+    expect(localStorage.getItem('business-hub:next:mock:v1')).toBe('{invalid json');
+    expect(gateway.writes).toHaveLength(0);
     expect(screen.getByRole('heading', { name: '💼 Sale Pipeline' })).toBeInTheDocument();
   });
   it('exports a JSON backup and records the local export history', async () => {
@@ -330,10 +327,8 @@ describe('regressions found during compatibility review', () => {
     await mount(<BackupDialog onClose={() => {}} />);
     await user.click(screen.getByRole('button', { name: '📥 Xuất backup ngay' }));
     expect(create).toHaveBeenCalled();
-    expect(screen.getByText(`business-hub-demo-${businessDate()}.json`)).toBeInTheDocument();
-    expect(localStorage.getItem('business-hub:next:demo-backup-history')).toContain(
-      'business-hub-demo-',
-    );
+    expect(screen.getByText(`business-hub-${businessDate()}.json`)).toBeInTheDocument();
+    expect(localStorage.getItem('business-hub:next:backup-history')).toContain('business-hub-');
     await waitFor(() => expect(revoke).toHaveBeenCalled(), { timeout: 1500 });
     vi.unstubAllGlobals();
   });

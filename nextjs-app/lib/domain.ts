@@ -183,13 +183,13 @@ export function rentIsPaid(data: AppData, aptId: string, month: string) {
       p.paid,
   );
 }
-export function exportBackup(data: AppData) {
+export function exportBackup(data: AppData, exportedBy = '') {
   return JSON.stringify(
     {
       appName: 'Business Hub',
       version: 3,
       exportedAt: new Date().toISOString(),
-      exportedBy: 'demo@business-hub.test',
+      exportedBy,
       data: validateData(data),
     },
     null,

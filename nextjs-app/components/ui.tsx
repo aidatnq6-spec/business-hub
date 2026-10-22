@@ -2,7 +2,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { AREAS, COLLECTION_LABELS, type Area, type CollectionName } from '@/lib/types';
 import { moneyText, shiftMonth } from '@/lib/domain';
-import { useHub } from './demo-provider';
+import { useHub } from './hub-provider';
 
 export function Modal({
   title,
@@ -241,7 +241,7 @@ export function DeleteConfirm({
   return (
     <Modal title={'Xóa ' + COLLECTION_LABELS[collection] + '?'} onClose={onClose}>
       <p>
-        Bạn muốn xóa <strong>{title}</strong> khỏi dữ liệu mẫu?
+        Bạn muốn xóa <strong>{title}</strong> khỏi Firebase?
       </p>
       <p className="muted">Có thể hoàn tác thao tác gần nhất trong phiên này.</p>
       <div className="modal-actions">
@@ -250,9 +250,9 @@ export function DeleteConfirm({
         </Button>
         <Button
           danger
-          onClick={() => {
-            hub.remove(collection, id);
-            onClose();
+          disabled={hub.busy || hub.syncStatus !== 'live'}
+          onClick={async () => {
+            if (await hub.remove(collection, id)) onClose();
           }}
         >
           Xác nhận xóa

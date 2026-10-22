@@ -1,5 +1,5 @@
 'use client';
-import { useHub } from './demo-provider';
+import { useHub } from './hub-provider';
 import { Modal, KPIs, Section, Empty, Button } from './ui';
 import { STAGES, type Deal } from '@/lib/types';
 import { totals, moneyText } from '@/lib/domain';

@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, type ReactNode } from 'react';
-import { useHub } from './demo-provider';
+import { useHub } from './hub-provider';
 import { searchData, dueLabel, isDone } from '@/lib/domain';
 import { COLLECTION_LABELS } from '@/lib/types';
 import { BackupDialog } from './backup-dialog';
@@ -26,8 +26,8 @@ export function HubShell({ children }: { children: ReactNode }) {
   const [clock, setClock] = useState('--:--');
   const [dialog, setDialog] = useState<'backup' | 'reminders' | 'telegram' | null>(null);
   useEffect(() => {
-    if (hub.ready && !hub.authenticated) router.replace('/login');
-  }, [hub.ready, hub.authenticated, router]);
+    if (hub.authReady && !hub.authenticated) router.replace('/login');
+  }, [hub.authReady, hub.authenticated, router]);
   useEffect(() => {
     const tick = () =>
       setClock(
@@ -62,10 +62,22 @@ export function HubShell({ children }: { children: ReactNode }) {
     document.addEventListener('pointerdown', close);
     return () => document.removeEventListener('pointerdown', close);
   }, []);
+  if (hub.syncError)
+    return (
+      <div className="loading-screen">
+        <div role="alert">
+          <p>{hub.syncError}</p>
+          <Button onClick={hub.retry}>Thử lại</Button>{' '}
+          <Button secondary onClick={() => hub.signOut()}>
+            Đăng xuất
+          </Button>
+        </div>
+      </div>
+    );
   if (!hub.ready || !hub.authenticated)
     return (
       <div className="loading-screen" role="status">
-        Đang mở Business Hub…
+        Đang tải dữ liệu Firebase…
       </div>
     );
   const results = searchData(hub.data, query);
@@ -140,7 +152,13 @@ export function HubShell({ children }: { children: ReactNode }) {
           )}
         </div>
         <div className="tb-right">
-          <span className="demo-badge">Dữ liệu mẫu</span>
+          <span className="demo-badge" title={hub.user?.email ?? ''} role="status">
+            {hub.busy
+              ? 'Đang lưu Firebase…'
+              : hub.syncStatus === 'live'
+                ? 'Firebase · Đã đồng bộ'
+                : 'Firebase · Mất kết nối'}
+          </span>
           <div id="clock">{clock}</div>
           <Link className="logout-btn" href="/settings">
             ⚙️ AI
@@ -157,9 +175,8 @@ export function HubShell({ children }: { children: ReactNode }) {
           </button>
           <button
             className="logout-btn"
-            onClick={() => {
-              hub.signOut();
-              router.push('/login');
+            onClick={async () => {
+              if (await hub.signOut()) router.push('/login');
             }}
           >
             Đăng xuất
