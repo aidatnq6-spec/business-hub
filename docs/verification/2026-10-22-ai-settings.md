@@ -26,3 +26,9 @@ Chưa có API key Gemini từ người dùng; chưa thử create text/image/spee
 `AI_SETTINGS_METADATA_CHECK_VERIFIED` mặc định false: phép kiểm tra metadata đã có code và test, nhưng chưa gọi ra ngoài khi chưa xác minh điều kiện tính phí. Khi bật sau review, chỉ GET metadata, không generateContent, không nhận prompt. Thành công chỉ xác nhận metadata.
 
 `AI_SETTINGS_ACTIVATION_APPROVED` và cờ Marketing trả phí/lịch tiếp tục tắt. Chưa deploy thay đổi mới lên Vercel, chưa chuyển master secret, chưa apply rules/IAM/Terraform lên cloud, chưa gửi Telegram thật. Hướng dẫn cấu hình và quản lý mất master key: `docs/ai-settings-setup.md`.
+
+## Cập nhật triển khai production sau kiểm chứng cục bộ
+
+Theo yêu cầu tiếp theo của người dùng, commit `8d1732f` đã được triển khai lên dự án Vercel `business-hub-by3w`, deployment `dpl_CRjfZvSEWhWBMzUag6LktFfeJqQB`, trạng thái READY, alias `https://business-hub-by3w.vercel.app`. Đã kiểm tra `/settings`200 và bundle có UI mới, không còn ô khóa demo; hai API settings/Marketing trả401 JSON khi chưa đăng nhập, không còn phản hồi rỗng500.
+
+Đã thêm `AI_SETTINGS_ORIGIN` cho production. Người dùng chọn tự cấu hình khóa mã hóa; agent không đưa master key mới lên Vercel. File khóa production chuẩn bị cục bộ ở `.secrets/ai-settings-production-encryption-key.txt` bị Git/Vercel upload bỏ qua. Cần người dùng thêm `AI_SETTINGS_ENCRYPTION_KEY` dưới dạng Secret production rồi redeploy để lưu API key hoạt động. Không bật cờ trả phí/lịch, không gửi provider request hoặc Telegram thật, không áp dụng hạ tầng/rules mới.
