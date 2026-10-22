@@ -2,7 +2,7 @@
 
 Ngày: 22/10/2026. Múi giờ nghiệp vụ: Asia/Ho_Chi_Minh.
 
-Trạng thái: người dùng đã duyệt bố cục, cách thao tác và nguyên tắc quản lý khóa trong hội thoại. Tài liệu tổng thể đang chờ duyệt trước khi lập kế hoạch triển khai. Chưa cho phép bật AI trả phí hoặc lịch tự động.
+Trạng thái: người dùng đã duyệt toàn bộ tài liệu trong hội thoại ngày 22/10/2026 và trước đó đã duyệt bố cục, cách thao tác, nguyên tắc quản lý khóa. Được phép lập kế hoạch triển khai. Chưa cho phép bật AI trả phí hoặc lịch tự động.
 
 ## Mục tiêu và phạm vi
 
