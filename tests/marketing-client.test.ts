@@ -9,6 +9,36 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe('marketing request deadlines', () => {
+  it.each([
+    [500, ''],
+    [502, '<html>Bad Gateway</html>'],
+    [200, ''],
+    [200, 'null'],
+  ])(
+    'handles HTTP %s with a malformed body without leaking a JSON parse error',
+    async (status, body) => {
+      token.mockResolvedValue('test-token');
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(body, { status })));
+      await expect(marketingRequest('dashboard')).rejects.toMatchObject({
+        code: 'marketing_response_invalid',
+        status,
+      });
+    },
+  );
+  it('preserves the actionable Firebase configuration error from JSON responses', async () => {
+    token.mockResolvedValue('test-token');
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({ error: 'marketing_firebase_admin_missing' }, { status: 503 }),
+        ),
+    );
+    await expect(marketingRequest('dashboard')).rejects.toMatchObject({
+      code: 'marketing_firebase_admin_missing',
+    });
+  });
   it('times out a stalled sign-in token without sending a request', async () => {
     vi.useFakeTimers();
     token.mockImplementation(() => new Promise(() => {}));
@@ -24,7 +54,7 @@ describe('marketing request deadlines', () => {
   it('bounds the response body wait and aborts the network request', async () => {
     vi.useFakeTimers();
     token.mockResolvedValue('test-token');
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: () => new Promise(() => {}) });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: () => new Promise(() => {}) });
     vi.stubGlobal('fetch', fetchMock);
     const pending = expect(marketingRequest('dashboard')).rejects.toMatchObject({
       code: 'marketing_request_timeout',

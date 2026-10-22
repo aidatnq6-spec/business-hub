@@ -57,18 +57,42 @@ export async function marketingRequest<T>(
           signal: controller.signal,
           cache: 'no-store',
         });
-        const value = await result.json();
+        const text = await result.text();
+        let value: unknown;
+        try {
+          value = JSON.parse(text);
+        } catch {
+          // Hosting errors can return an empty or HTML body for an API URL.
+          throw Object.assign(
+            new Error(
+              `Máy chủ Marketing trả về phản hồi không hợp lệ (HTTP ${result.status}). Vui lòng thử lại hoặc kiểm tra nhật ký Vercel.`,
+            ),
+            {
+              code: 'marketing_response_invalid',
+              status: result.status,
+            },
+          );
+        }
+        if (!value || typeof value !== 'object' || Array.isArray(value))
+          throw Object.assign(
+            new Error('Phản hồi máy chủ Marketing không hợp lệ. Hãy thử tải lại.'),
+            {
+              code: 'marketing_response_invalid',
+              status: result.status,
+            },
+          );
+        const errorCode = 'error' in value && typeof value.error === 'string' ? value.error : '';
         if (!result.ok)
           throw Object.assign(
             new Error(
-              errors[value.error] ??
+              errors[errorCode] ??
                 'Chưa hoàn tất thao tác. Kiểm tra trạng thái cấu hình và thử lại.',
             ),
             {
-              code: typeof value.error === 'string' ? value.error : 'marketing_server_unavailable',
+              code: errorCode || 'marketing_server_unavailable',
             },
           );
-        return value;
+        return value as T;
       })(),
     ]);
   } catch (error) {
